@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Event registration table
-CREATE TABLE event_registrations (
+CREATE TABLE IF NOT EXISTS event_registrations (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id uuid REFERENCES users(id),
     event_id uuid REFERENCES events(id),
