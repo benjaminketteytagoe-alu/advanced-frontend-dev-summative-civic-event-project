@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CivicEvents+ · Your community, in one place</title>
+  <meta name="description" content="Discover civic events, listen to audio announcements and watch captioned promos from your community.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: public → visitors see the landing page, signed-in users their dashboard -->
+<body data-auth="public" data-page="home" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+
+    <!-- ===================== GUEST LANDING (data-role="guest") ===================== -->
+    <div data-role="guest" hidden>
+      <section class="relative overflow-hidden">
+        <div aria-hidden="true" class="absolute -top-20 right-[-10%] w-[36rem] h-[36rem] rounded-full bg-ember-200/40 blur-3xl float-slower"></div>
+        <div class="relative mx-auto max-w-page px-4 sm:px-6 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-[1.1fr_.9fr] gap-14 items-center">
+          <div>
+            <p class="eyebrow mb-5 reveal">Your city · one calendar</p>
+            <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl leading-[1.02] tracking-tight text-ink-900 reveal" style="--d:80ms">
+              Show up for the moments that <span class="underline-draw">shape</span> your community.
+            </h1>
+            <p class="mt-7 text-lg text-ink-600 max-w-xl leading-relaxed reveal" style="--d:160ms">
+              CivicEvents+ brings town halls, clean-ups, workshops and festivals together with audio announcements and captioned video promos — so nobody misses what matters.
+            </p>
+            <div class="mt-9 flex flex-wrap gap-3 reveal" style="--d:240ms">
+              <a href="signup.html" class="btn btn-primary btn-lg">Create a free account
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+              <a href="login.html" class="btn btn-ghost btn-lg">I already have one</a>
+            </div>
+            <div class="mt-10 flex items-center gap-4 reveal" style="--d:320ms">
+              <div class="flex -space-x-3" id="hero-avatars"></div>
+              <p class="text-sm text-ink-600"><strong class="text-ink-900">Neighbours</strong> are already planning their week.</p>
+            </div>
+          </div>
+
+          <!-- illustrative stacked ticket cards -->
+          <div class="relative h-[26rem] hidden sm:block" aria-hidden="true">
+            <div class="absolute right-6 top-0 w-72 card p-5 rotate-[6deg] float-slower">
+              <img id="hero-cover-2" alt="" class="w-full h-32 rounded-xl object-cover mb-4">
+              <div class="skeleton !animate-none h-4 w-3/4 mb-2"></div><div class="skeleton !animate-none h-3 w-1/2"></div>
+            </div>
+            <div class="absolute left-0 top-16 w-80 card star-border p-5 rotate-[-4deg] shadow-lift float-slow">
+              <img id="hero-cover-1" alt="" class="w-full h-40 rounded-xl object-cover mb-4">
+              <div class="flex items-start gap-3">
+                <div class="date-stub"><span class="text-[10px] tracking-[.2em] text-ember-200 font-semibold">SAT</span><span class="font-display text-2xl leading-none">14</span></div>
+                <div><p class="font-display text-lg text-ink-900 leading-snug">Riverside Clean-up Day</p><p class="text-xs text-ink-500 mt-1">09:00 · Riverside Park</p></div>
+              </div>
+            </div>
+            <div class="absolute right-0 bottom-0 w-64 card p-4 rotate-[3deg] flex items-center gap-3 float-slower">
+              <span class="grid place-items-center w-11 h-11 rounded-full bg-ink-900 text-white">▶</span>
+              <div class="flex-1"><p class="text-sm font-semibold text-ink-900">Mayor’s weekly update</p>
+                <div class="mt-2 h-1 rounded-full bg-paper-200"><span class="block h-full w-2/3 rounded-full bg-ember-500"></span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="relative border-y border-paper-300/80 bg-white/40 py-4 overflow-hidden" aria-hidden="true">
+          <div class="marquee font-display text-xl text-ink-700">
+            <span>Town halls</span><span class="text-ember-500">✦</span><span>Clean-up drives</span><span class="text-ember-500">✦</span><span>Youth workshops</span><span class="text-ember-500">✦</span><span>Farmers’ markets</span><span class="text-ember-500">✦</span><span>Health fairs</span><span class="text-ember-500">✦</span><span>Budget hearings</span><span class="text-ember-500">✦</span><span>Concerts in the park</span><span class="text-ember-500">✦</span>
+            <span>Town halls</span><span class="text-ember-500">✦</span><span>Clean-up drives</span><span class="text-ember-500">✦</span><span>Youth workshops</span><span class="text-ember-500">✦</span><span>Farmers’ markets</span><span class="text-ember-500">✦</span><span>Health fairs</span><span class="text-ember-500">✦</span><span>Budget hearings</span><span class="text-ember-500">✦</span><span>Concerts in the park</span><span class="text-ember-500">✦</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-page px-4 sm:px-6 py-24" aria-labelledby="features-title">
+        <div class="max-w-2xl mb-14">
+          <p class="eyebrow mb-3 reveal">What’s inside</p>
+          <h2 id="features-title" class="font-display text-4xl sm:text-5xl text-ink-900 reveal" style="--d:80ms">Everything civic, beautifully organised.</h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          <article class="card card-hover p-7 reveal" style="--d:0ms">
+            <span class="grid place-items-center w-12 h-12 rounded-2xl bg-ink-900 text-white mb-6">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></span>
+            <h3 class="font-display text-2xl text-ink-900 mb-2">Events</h3>
+            <p class="text-ink-600 leading-relaxed">Browse by date or location, register in a tap, and leave feedback after you attend.</p>
+          </article>
+          <article class="card card-hover p-7 reveal" style="--d:90ms">
+            <span class="grid place-items-center w-12 h-12 rounded-2xl bg-ember-600 text-white mb-6">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h2l8 5V4L6 9H4a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/></svg></span>
+            <h3 class="font-display text-2xl text-ink-900 mb-2">Announcements</h3>
+            <p class="text-ink-600 leading-relaxed">Listen to short audio briefings from your civic office with accessible, keyboard-friendly controls.</p>
+          </article>
+          <article class="card card-hover p-7 reveal" style="--d:180ms">
+            <span class="grid place-items-center w-12 h-12 rounded-2xl bg-moss-600 text-white mb-6">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M10.5 10.2a2.5 2.5 0 1 0 0 3.6M17.5 10.2a2.5 2.5 0 1 0 0 3.6"/></svg></span>
+            <h3 class="font-display text-2xl text-ink-900 mb-2">Promos</h3>
+            <p class="text-ink-600 leading-relaxed">Watch community videos with captions switched on by default and a full transcript alongside.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-page px-4 sm:px-6 pb-8">
+        <div class="relative overflow-hidden rounded-[2rem] bg-ink-950 text-white px-8 py-16 sm:px-14 reveal">
+          <div aria-hidden="true" class="absolute -right-20 -bottom-24 w-96 h-96 rounded-full bg-ember-600/30 blur-3xl float-slow"></div>
+          <div class="relative grid lg:grid-cols-[1.4fr_1fr] gap-10 items-center">
+            <div>
+              <h2 class="font-display text-4xl sm:text-5xl leading-tight">Ready to take your seat?</h2>
+              <p class="mt-4 text-ink-300 max-w-lg">Sign up in under a minute. You’ll get in-app notifications whenever new events, announcements or promos go live.</p>
+            </div>
+            <div class="flex flex-wrap gap-3 lg:justify-end">
+              <a href="signup.html" class="btn btn-accent btn-lg">Join CivicEvents+</a>
+              <a href="login.html" class="btn btn-lg bg-white/10 text-white hover:bg-white/20">Sign in</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== SIGNED-IN DASHBOARD (data-role="auth") ===================== -->
+    <div data-role="auth" hidden>
+      <section class="mx-auto max-w-page px-4 sm:px-6 pt-10 pb-6">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div class="flex items-center gap-5">
+            <img id="me-avatar" alt="" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full ring-4 ring-white shadow-card bg-paper-200 reveal">
+            <div>
+              <p class="eyebrow mb-2 reveal" id="today-label"></p>
+              <h1 class="font-display text-4xl sm:text-5xl text-ink-900 reveal" style="--d:60ms" id="greeting">Welcome</h1>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 reveal" style="--d:120ms">
+            <a href="events.html" class="btn btn-primary">Browse events</a>
+            <!-- ADMIN-ONLY shortcut -->
+            <a href="admin.html" class="btn btn-accent" data-role="admin" hidden>Open admin dashboard</a>
+            <a href="my-registrations.html" class="btn btn-ghost" data-role="user" hidden>My registrations</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-page px-4 sm:px-6" aria-label="Your stats">
+        <div id="my-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </section>
+
+      <section class="mx-auto max-w-page px-4 sm:px-6 pt-14" aria-labelledby="up-title">
+        <div class="flex items-end justify-between mb-6">
+          <div><p class="eyebrow mb-2">Coming up</p><h2 id="up-title" class="font-display text-3xl text-ink-900">Upcoming events</h2></div>
+          <a href="events.html" class="text-sm font-semibold text-ember-700 hover:text-ember-800 inline-flex items-center gap-1">See all <span aria-hidden="true">→</span></a>
+        </div>
+        <div id="up-events" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite" aria-busy="true"></div>
+      </section>
+
+      <section class="mx-auto max-w-page px-4 sm:px-6 pt-16 grid lg:grid-cols-[1.2fr_1fr] gap-10">
+        <div aria-labelledby="ann-title">
+          <div class="flex items-end justify-between mb-6">
+            <div><p class="eyebrow mb-2">Listen</p><h2 id="ann-title" class="font-display text-3xl text-ink-900">Latest announcements</h2></div>
+            <a href="announcements.html" class="text-sm font-semibold text-ember-700 hover:text-ember-800">All <span aria-hidden="true">→</span></a>
+          </div>
+          <div id="home-ann" class="space-y-4" aria-live="polite"></div>
+        </div>
+        <div aria-labelledby="promo-title">
+          <div class="flex items-end justify-between mb-6">
+            <div><p class="eyebrow mb-2">Watch</p><h2 id="promo-title" class="font-display text-3xl text-ink-900">Featured promo</h2></div>
+            <a href="promos.html" class="text-sm font-semibold text-ember-700 hover:text-ember-800">All <span aria-hidden="true">→</span></a>
+          </div>
+          <div id="home-promo" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-home.js"></script>
+</body>
+</html>

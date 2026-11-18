@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · CivicEvents+</title>
+  <meta name="description" content="Sign in to CivicEvents+ to register for community events, listen to announcements and watch promos.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: data-auth="guest" → signed-in users are redirected away (see CE.guard.page in app.js) -->
+<body data-auth="guest" data-page="login" class="min-h-screen font-sans">
+  <main id="main" tabindex="-1" class="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
+
+    <!-- Decorative panel -->
+    <section class="relative hidden lg:flex flex-col justify-between overflow-hidden bg-ink-950 text-white p-12" aria-hidden="true">
+      <div class="absolute -top-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-ember-600/25 blur-3xl float-slower"></div>
+      <div class="absolute bottom-0 right-0 w-[22rem] h-[22rem] rounded-full bg-ink-500/30 blur-3xl float-slow"></div>
+      <a href="index.html" class="relative flex items-center gap-2.5" tabindex="-1">
+        <span class="grid place-items-center w-10 h-10 rounded-xl bg-white text-ink-900">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10 12 5l8 5M6 10v8M10 10v8M14 10v8M18 10v8M3.5 20h17"/></svg>
+        </span>
+        <span class="font-display text-2xl">Civic<span class="text-ember-300">Events+</span></span>
+      </a>
+
+      <div class="relative">
+        <div class="flex -space-x-3 mb-8" id="auth-avatars"></div>
+        <p class="font-display text-5xl leading-[1.08] tracking-tight max-w-lg">Welcome back to the <em class="text-ember-300 not-italic underline-draw">heart</em> of your neighbourhood.</p>
+        <p class="mt-6 text-ink-300 max-w-md leading-relaxed">Pick up where you left off — your registrations, fresh announcements and the latest promos are waiting.</p>
+      </div>
+
+      <div class="relative overflow-hidden border-t border-white/10 pt-6 -mx-12 px-12">
+        <div class="marquee text-sm text-ink-300 font-medium">
+          <span>Town halls</span><span>✦</span><span>Clean-up drives</span><span>✦</span><span>Youth workshops</span><span>✦</span><span>Farmers’ markets</span><span>✦</span><span>Health fairs</span><span>✦</span><span>Budget hearings</span><span>✦</span>
+          <span>Town halls</span><span>✦</span><span>Clean-up drives</span><span>✦</span><span>Youth workshops</span><span>✦</span><span>Farmers’ markets</span><span>✦</span><span>Health fairs</span><span>✦</span><span>Budget hearings</span><span>✦</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Form -->
+    <section class="flex items-center justify-center px-4 py-12 sm:px-8">
+      <div class="w-full max-w-md page-enter">
+        <a href="index.html" class="lg:hidden inline-flex items-center gap-2 mb-10 font-display text-2xl text-ink-900">Civic<span class="text-ember-600">Events+</span></a>
+        <p class="eyebrow mb-3">Sign in</p>
+        <h1 class="font-display text-4xl text-ink-900 mb-2">Good to see you again</h1>
+        <p class="text-ink-600 mb-8">New here? <a href="signup.html" class="font-semibold text-ember-700 underline underline-offset-4 hover:text-ember-800">Create an account</a></p>
+
+        <div id="form-alert" class="hidden mb-6 rounded-xl border px-4 py-3 text-sm" role="alert"></div>
+
+        <form id="login-form" novalidate class="space-y-5">
+          <div class="form-row">
+            <label for="email" class="field-label">Email address</label>
+            <input id="email" name="email" type="email" class="field" autocomplete="email" required placeholder="you@example.com">
+          </div>
+          <div class="form-row">
+            <div class="flex items-center justify-between"><label for="password" class="field-label">Password</label></div>
+            <div class="relative">
+              <input id="password" name="password" type="password" class="field pr-12" autocomplete="current-password" required placeholder="Your password">
+              <button type="button" class="js-reveal absolute right-1.5 top-1/2 -translate-y-1/2 icon-btn text-ink-500" aria-label="Show password" aria-controls="password"></button>
+            </div>
+          </div>
+
+          <label class="flex items-start gap-3 rounded-xl border border-paper-300 bg-white/60 p-3.5 cursor-pointer hover:bg-white transition">
+            <input id="remember" name="remember" type="checkbox" class="mt-0.5 w-4 h-4 accent-ink-900">
+            <span class="text-sm">
+              <span class="font-semibold text-ink-900">Keep me signed in on this device</span>
+              <span class="block text-ink-500 text-xs mt-0.5 leading-relaxed">Uses persistent storage (localStorage). Leave unticked on shared computers — your session will end when you close the tab.</span>
+            </span>
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-lg w-full">Sign in</button>
+        </form>
+
+        <p class="mt-8 text-xs text-ink-500 text-center">Trouble signing in? <a class="underline underline-offset-2" href="mailto:support@civicevents.example">Contact support</a></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="page-auth.js"></script>
+</body>
+</html>
