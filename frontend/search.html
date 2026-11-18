@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search · CivicEvents+</title>
+  <meta name="description" content="Search events, announcements and promos.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: any signed-in user -->
+<body data-auth="user" data-page="search" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <section class="mx-auto max-w-page px-4 sm:px-6 pt-10 pb-6">
+      <p class="eyebrow mb-2 reveal">Search</p>
+      <form id="s-form" role="search" class="reveal" style="--d:60ms">
+        <label for="s-q" class="sr-only">Search everything</label>
+        <div class="relative max-w-3xl">
+          <span class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-ink-400"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+          <input id="s-q" name="q" type="search" class="w-full rounded-2xl border border-paper-300 bg-white py-5 pl-14 pr-32 font-display text-2xl sm:text-3xl text-ink-900 placeholder:text-ink-300 shadow-card focus:border-ink-400 focus:ring-4 focus:ring-ink-100 transition" placeholder="Search events, audio & videos" autocomplete="off">
+          <button type="submit" class="btn btn-primary absolute right-3 top-1/2 -translate-y-1/2">Search</button>
+        </div>
+      </form>
+      <div class="mt-5 flex flex-wrap gap-2" role="group" aria-label="Result type">
+        <button type="button" class="chip" data-t="all" aria-pressed="true">Everything <span class="js-c" data-for="all"></span></button>
+        <button type="button" class="chip" data-t="events" aria-pressed="false">Events <span class="js-c" data-for="events"></span></button>
+        <button type="button" class="chip" data-t="announcements" aria-pressed="false">Announcements <span class="js-c" data-for="announcements"></span></button>
+        <button type="button" class="chip" data-t="promos" aria-pressed="false">Promos <span class="js-c" data-for="promos"></span></button>
+      </div>
+      <p id="s-summary" class="mt-4 text-sm text-ink-600" aria-live="polite"></p>
+    </section>
+
+    <section class="mx-auto max-w-page px-4 sm:px-6 space-y-12" id="s-results" aria-busy="true"></section>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-search.js"></script>
+</body>
+</html>

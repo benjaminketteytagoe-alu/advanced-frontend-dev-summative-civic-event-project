@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My profile · CivicEvents+</title>
+  <meta name="description" content="View and update your CivicEvents+ profile.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: any signed-in user -->
+<body data-auth="user" data-page="profile" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <section class="relative">
+      <div class="h-44 sm:h-56 overflow-hidden bg-ink-900" aria-hidden="true"><img id="banner" alt="" class="w-full h-full object-cover opacity-80"></div>
+      <div class="mx-auto max-w-page px-4 sm:px-6">
+        <div class="-mt-16 sm:-mt-20 flex flex-col sm:flex-row sm:items-end gap-5">
+          <span class="focus-brackets focus-brackets--reticle inline-block w-fit rounded-full reveal">
+            <img id="p-avatar" alt="Your avatar" class="block w-32 h-32 sm:w-40 sm:h-40 rounded-full ring-8 ring-paper bg-paper-200 shadow-lift" width="160" height="160">
+          </span>
+          <div class="pb-2 reveal" style="--d:80ms">
+            <h1 id="p-name" class="font-display text-4xl text-ink-900">…</h1>
+            <p id="p-meta" class="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-600"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-page px-4 sm:px-6 pt-10 grid lg:grid-cols-[1.3fr_1fr] gap-8 items-start">
+      <form id="profile-form" class="card p-6 sm:p-8 space-y-6 reveal" novalidate aria-labelledby="pf-h">
+        <div><h2 id="pf-h" class="font-display text-2xl text-ink-900">Personal details</h2>
+          <p class="text-sm text-ink-600 mt-1">Update your name and sign-in email.</p></div>
+        <div class="form-row">
+          <label for="full_name" class="field-label">Full name</label>
+          <input id="full_name" name="full_name" type="text" class="field" autocomplete="name" required maxlength="255">
+        </div>
+        <div class="form-row">
+          <label for="email" class="field-label">Email address</label>
+          <input id="email" name="email" type="email" class="field" autocomplete="email" required>
+          <p class="field-hint">You’ll use this address to sign in.</p>
+        </div>
+        <!-- Role & status are display-only: the API rejects updates to them, and the UI never sends them. -->
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label for="role" class="field-label">Role</label>
+            <input id="role" type="text" class="field !bg-paper-100 capitalize cursor-not-allowed" readonly aria-readonly="true" aria-describedby="locked-hint">
+          </div>
+          <div>
+            <label for="status" class="field-label">Account status</label>
+            <input id="status" type="text" class="field !bg-paper-100 cursor-not-allowed" readonly aria-readonly="true" aria-describedby="locked-hint">
+          </div>
+        </div>
+        <p id="locked-hint" class="flex items-start gap-2 text-xs text-ink-500 -mt-2">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+          Role and account status are managed by CivicEvents+ administrators and can’t be changed here.</p>
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="submit" id="save-btn" class="btn btn-primary" disabled>Save changes</button>
+          <button type="reset" id="reset-btn" class="btn btn-ghost" disabled>Discard</button>
+        </div>
+      </form>
+
+      <div class="space-y-6">
+        <div class="card p-6 reveal" style="--d:100ms" aria-labelledby="sess-h">
+          <h2 id="sess-h" class="font-display text-xl text-ink-900 mb-4">This session</h2>
+          <dl class="space-y-3 text-sm">
+            <div class="flex justify-between gap-4"><dt class="text-ink-500">Stored in</dt><dd id="s-store" class="font-medium text-ink-900 text-right"></dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-ink-500">Expires</dt><dd id="s-exp" class="font-mono text-ink-900"></dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-ink-500">Member since</dt><dd id="s-since" class="text-ink-900"></dd></div>
+          </dl>
+          <button type="button" id="signout" class="btn btn-danger w-full mt-6">Sign out</button>
+        </div>
+        <div class="card p-6 reveal" style="--d:160ms" aria-labelledby="fb-h">
+          <h2 id="fb-h" class="font-display text-xl text-ink-900 mb-4">Your feedback</h2>
+          <ul id="my-feedback" class="space-y-3 text-sm"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="page-profile.js"></script>
+</body>
+</html>
