@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event · CivicEvents+</title>
+  <meta name="description" content="Event details, registration and feedback.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: any signed-in user; admin-only panels are added by role checks in page-event.js -->
+<body data-auth="user" data-page="event" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-8">
+      <a href="events.html" class="inline-flex items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900 transition group">
+        <span class="transition-transform group-hover:-translate-x-1" aria-hidden="true">←</span> All events</a>
+    </div>
+    <div id="event-root" class="mx-auto max-w-page px-4 sm:px-6 pt-6" aria-live="polite" aria-busy="true">
+      <!-- skeleton -->
+      <div class="skeleton h-72 sm:h-96 rounded-[1.75rem] mb-8"></div>
+      <div class="grid lg:grid-cols-[1fr_22rem] gap-10">
+        <div class="space-y-4"><div class="skeleton h-10 w-3/4"></div><div class="skeleton h-4 w-full"></div><div class="skeleton h-4 w-5/6"></div><div class="skeleton h-4 w-2/3"></div></div>
+        <div class="skeleton h-80"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-event.js"></script>
+</body>
+</html>
