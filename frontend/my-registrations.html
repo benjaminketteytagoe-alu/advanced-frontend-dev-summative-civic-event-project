@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My registrations · CivicEvents+</title>
+  <meta name="description" content="Events you have registered for.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: any signed-in user -->
+<body data-auth="user" data-page="my-registrations" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <section class="mx-auto max-w-page px-4 sm:px-6 pt-10 pb-6">
+      <p class="eyebrow mb-2 reveal">Your tickets</p>
+      <h1 class="font-display text-4xl sm:text-5xl text-ink-900 reveal" style="--d:60ms">My registrations</h1>
+      <p class="mt-3 text-ink-600 reveal" style="--d:120ms" id="r-summary" aria-live="polite">Loading…</p>
+    </section>
+
+    <section class="mx-auto max-w-page px-4 sm:px-6">
+      <div class="flex flex-wrap gap-2 mb-6" role="group" aria-label="Filter registrations">
+        <button type="button" class="chip" data-f="upcoming" aria-pressed="true">Upcoming</button>
+        <button type="button" class="chip" data-f="past" aria-pressed="false">Past</button>
+        <button type="button" class="chip" data-f="cancelled" aria-pressed="false">Cancelled</button>
+        <button type="button" class="chip" data-f="all" aria-pressed="false">All</button>
+      </div>
+      <div id="r-list" class="space-y-4" aria-busy="true" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-registrations.js"></script>
+</body>
+</html>

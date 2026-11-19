@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event editor · CivicEvents+</title>
+  <meta name="description" content="Create or edit a community event.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: data-auth="admin" → normal users get a 403 panel and this page's script never initialises -->
+<body data-auth="admin" data-page="event-form" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-8 pb-4">
+      <a id="back-link" href="events.html" class="inline-flex items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900 transition group">
+        <span class="transition-transform group-hover:-translate-x-1" aria-hidden="true">←</span> Back</a>
+      <p class="eyebrow mt-6 mb-2">Admin · Events</p>
+      <h1 id="form-title" class="font-display text-4xl sm:text-5xl text-ink-900">Create an event</h1>
+    </div>
+
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-4 grid lg:grid-cols-[1fr_22rem] gap-10 items-start">
+      <form id="event-form" class="card p-6 sm:p-8 space-y-6" novalidate enctype="multipart/form-data" aria-busy="false">
+        <div class="form-row">
+          <label for="title" class="field-label">Title <span class="text-ember-600" aria-hidden="true">*</span></label>
+          <input id="title" name="title" type="text" class="field" required maxlength="200" placeholder="e.g. Riverside Clean-up Day">
+        </div>
+        <div class="form-row">
+          <label for="description" class="field-label">Description</label>
+          <textarea id="description" name="description" rows="6" class="field resize-y" maxlength="5000" placeholder="What will happen, who it's for, what to bring…"></textarea>
+          <p class="field-hint text-right"><span id="desc-count">0</span>/5000</p>
+        </div>
+        <div class="form-row">
+          <label for="location" class="field-label">Location <span class="text-ember-600" aria-hidden="true">*</span></label>
+          <input id="location" name="location" type="text" class="field" required maxlength="255" placeholder="e.g. Riverside Park, North Gate" list="loc-suggestions">
+          <datalist id="loc-suggestions"></datalist>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div class="form-row">
+            <label for="starts_at" class="field-label">Starts <span class="text-ember-600" aria-hidden="true">*</span></label>
+            <input id="starts_at" name="starts_at" type="datetime-local" class="field" required>
+          </div>
+          <div class="form-row">
+            <label for="ends_at" class="field-label">Ends <span class="text-ember-600" aria-hidden="true">*</span></label>
+            <input id="ends_at" name="ends_at" type="datetime-local" class="field" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <span class="field-label" id="image-label">Event image</span>
+          <label id="dropzone" for="image" class="dropzone flex flex-col sm:flex-row items-center gap-5 p-5 cursor-pointer" aria-describedby="image-hint">
+            <span id="img-preview-wrap" class="relative shrink-0 w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-paper-200 grid place-items-center text-ink-400">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+              <img id="img-preview" alt="Preview of the selected event image" class="absolute inset-0 w-full h-full object-cover hidden">
+            </span>
+            <span class="flex-1 text-center sm:text-left">
+              <span class="block font-semibold text-ink-900">Drop an image here or <span class="text-ember-700 underline underline-offset-2">browse</span></span>
+              <span id="image-hint" class="block text-sm text-ink-500 mt-1">JPG, PNG or GIF up to 2 MB. Landscape images look best.</span>
+              <span id="img-meta" class="mt-2 hidden items-center gap-2 text-sm"></span>
+            </span>
+            <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" class="sr-only" aria-labelledby="image-label">
+          </label>
+          <button type="button" id="img-clear" class="hidden mt-2 text-sm font-semibold text-ember-700 hover:underline">Remove selected image</button>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 rounded-xl border border-paper-300 bg-white/60 p-4">
+          <label for="published" class="cursor-pointer">
+            <span class="block font-semibold text-ink-900">Published</span>
+            <span class="block text-sm text-ink-500">Published events are visible to all community members.</span>
+          </label>
+          <input id="published" name="published" type="checkbox" class="switch" role="switch" checked>
+        </div>
+
+        <div class="js-progress hidden" aria-live="polite">
+          <div class="flex justify-between text-xs text-ink-600 mb-1.5"><span class="js-pct">Uploading…</span></div>
+          <div class="progress" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Create event</button>
+          <a href="events.html" class="btn btn-ghost btn-lg" id="cancel-link">Cancel</a>
+        </div>
+      </form>
+
+      <aside class="lg:sticky lg:top-24" aria-label="Live preview">
+        <p class="eyebrow mb-3">Live preview</p>
+        <div id="preview" class="pointer-events-none select-none" aria-hidden="true"></div>
+        <p class="mt-4 text-xs text-ink-500 leading-relaxed">This is how the event card will appear in the calendar. A generated DiceBear pattern is used when no image is uploaded.</p>
+      </aside>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-event-form.js"></script>
+</body>
+</html>
