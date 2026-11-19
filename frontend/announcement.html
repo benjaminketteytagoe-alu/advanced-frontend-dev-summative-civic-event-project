@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Announcement · CivicEvents+</title>
+  <meta name="description" content="Listen to a civic audio announcement.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .disc { animation: spin 18s linear infinite; animation-play-state: paused; }
+    .is-playing .disc { animation-play-state: running; }
+  </style>
+</head>
+<!-- PAGE GUARD: any signed-in user; admin controls are rendered only when CE.guard.can(...) allows -->
+<body data-auth="user" data-page="announcement" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 pt-8">
+      <a href="announcements.html" class="inline-flex items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900 transition group">
+        <span class="transition-transform group-hover:-translate-x-1" aria-hidden="true">←</span> All announcements</a>
+    </div>
+    <div id="ann-root" class="mx-auto max-w-5xl px-4 sm:px-6 pt-6" aria-live="polite" aria-busy="true">
+      <div class="skeleton h-96 rounded-[1.75rem]"></div>
+    </div>
+    <section class="mx-auto max-w-5xl px-4 sm:px-6 pt-14" aria-labelledby="more-h">
+      <h2 id="more-h" class="font-display text-2xl text-ink-900 mb-5">More announcements</h2>
+      <div id="more" class="grid md:grid-cols-2 gap-4"></div>
+    </section>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-announcement.js"></script>
+</body>
+</html>
