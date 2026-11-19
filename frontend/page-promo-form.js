@@ -1,7 +1,8 @@
 /* =========================================================================
    Promo create / edit (ADMIN ONLY)
-     POST  /api/promos        multipart: title, description, caption_text, video
-     PUT   /api/promos/:id    multipart: same fields, video optional
+     POST  /api/promos        multipart: title, description, caption_text,
+                              plus either video (file) or video_link (YouTube/Vimeo URL)
+     PUT   /api/promos/:id    multipart: same fields, video / video_link optional
      PATCH /api/promos/:id/publish | /unpublish
    Backend: uploadPromoVideo.single('video')
    ========================================================================= */
@@ -9,6 +10,39 @@
   'use strict';
   var ui = CE.ui, esc = CE.esc;
   var id = CE.param('id'), editing = !!id, existing = null, file = null, url = null;
+  var source = 'file'; // 'file' = upload, 'link' = YouTube/Vimeo URL
+
+  // Show the chosen source's input and the matching preview (video vs iframe).
+  function setSource(next) {
+    source = next;
+    $('input[name=video_source][value=' + next + ']').prop('checked', true);
+    $('#source-file').prop('hidden', next !== 'file');
+    $('#source-link').prop('hidden', next !== 'link');
+    ui.fieldError($('#video'), ''); ui.fieldError($('#video_link'), '');
+    refreshPreview();
+  }
+
+  function refreshPreview() {
+    var v = document.getElementById('preview'), $embed = $('#preview-embed');
+    var link = source === 'link' ? CE.videoLink($('#video_link').val()) : null;
+    $(v).prop('hidden', source === 'link'); $embed.prop('hidden', source !== 'link');
+    // timed captions only apply to uploaded files; linked players show their own
+    $('#timeline-box').prop('hidden', source === 'link');
+    $('#preview-title').text(source === 'link' ? 'Preview' : 'Preview with captions');
+    if (source === 'link') {
+      if (!v.paused) v.pause();
+      if (link) {
+        if ($embed.attr('src') !== link.embed) $embed.attr('src', link.embed);
+        $('#preview-hint').text(link.label + ' video. ' + link.label + ' shows its own captions; your caption text below becomes the transcript.');
+      } else {
+        $embed.removeAttr('src');
+        $('#preview-hint').text($.trim($('#video_link').val()) ? 'That doesn’t look like a YouTube or Vimeo link yet.' : 'Paste a link to preview the video here.');
+      }
+    } else {
+      $embed.removeAttr('src');
+      $('#preview-hint').text(file ? 'Previewing your file locally — nothing is uploaded until you save.' : (existing && !CE.videoLink(existing.video_url) ? 'Current video. Edit the captions to see them update live.' : 'Choose a video to preview it here with your captions overlaid.'));
+    }
+  }
 
   function refreshCaptions() {
     var v = document.getElementById('preview');
@@ -27,6 +61,7 @@
       ui.setTitle('Edit promo');
       $('#form-title').text('Edit promo'); $('#submit-btn').text('Save changes');
       $('#video-req').remove(); $('#video-hint').text('Optional — upload a new file to replace the current video (MP4, MOV, AVI or MKV up to 8 MB).');
+      $('#link-hint').text('Optional — paste a new YouTube or Vimeo link to replace the current video.');
       $('#back-link, #cancel-link').attr('href', 'promo.html?id=' + encodeURIComponent(id));
       $f.find('input, textarea, button').prop('disabled', true);
       CE.api.get('/promos/' + encodeURIComponent(id)).then(function (r) {
@@ -34,9 +69,10 @@
         $('#title').val(existing.title); $('#description').val(existing.description || '');
         $('#caption_text').val(existing.caption_text || '');
         $('#published').prop('checked', existing.published !== false);
-        v.src = CE.mediaUrl(existing.video_url);
-        $('#preview-hint').text('Current video. Edit the captions to see them update live.');
         $f.find('input, textarea, button').prop('disabled', false);
+        var link = CE.videoLink(existing.video_url);
+        if (link) { $('#video_link').val(link.watch); setSource('link'); }
+        else { v.src = CE.mediaUrl(existing.video_url); setSource('file'); }
         refreshCaptions(); dirty.clean();
       }).catch(function (err) { ui.errorState($f, err, function () { window.location.reload(); }); });
     } else {
@@ -46,6 +82,8 @@
     }
 
     $('#caption_text').on('input', CE.debounce(refreshCaptions, 300));
+    $('input[name=video_source]').on('change', function () { if (this.checked) setSource(this.value); });
+    $('#video_link').on('input', CE.debounce(function () { ui.fieldError($('#video_link'), ''); refreshPreview(); }, 350));
 
     CE.forms.picker({
       zone: '#dropzone', input: '#video', kind: 'video',
@@ -54,9 +92,10 @@
         if (url) URL.revokeObjectURL(url);
         url = f ? URL.createObjectURL(f) : null;
         $('#video-meta').toggleClass('hidden', !f).toggleClass('flex', !!f).html(f ? CE.forms.fileMeta(f) : '');
-        if (f) { v.src = url; $('#preview-hint').text('Previewing your file locally — nothing is uploaded until you save.'); }
-        else if (existing) v.src = CE.mediaUrl(existing.video_url);
+        if (f) v.src = url;
+        else if (existing && !CE.videoLink(existing.video_url)) v.src = CE.mediaUrl(existing.video_url);
         else v.removeAttribute('src');
+        refreshPreview();
       }
     });
 
@@ -68,20 +107,31 @@
       var pub = $('#published').is(':checked'), ok = true;
       if (title.length < 3) ok = ui.fieldError($('#title'), 'Give the promo a title (at least 3 characters).') && ok;
       if (!desc) ok = ui.fieldError($('#description'), 'A short description is required.') && ok;
-      if (!editing && !file) ok = ui.fieldError($('#video'), 'Choose a video file to upload.') && ok;
-      if (file) { var fe = ui.validateFile(file, 'video'); if (fe) ok = ui.fieldError($('#video'), fe) && ok; }
+      var linkRaw = $.trim($('#video_link').val()), link = CE.videoLink(linkRaw);
+      // a link only replaces the video when it's new (or the promo isn't a link yet)
+      var sendLink = source === 'link' && link && !(existing && existing.video_url === link.watch);
+      var sendFile = source === 'file' && file;
+      if (source === 'file') {
+        if (!editing && !file) ok = ui.fieldError($('#video'), 'Choose a video file to upload.') && ok;
+        if (file) { var fe = ui.validateFile(file, 'video'); if (fe) ok = ui.fieldError($('#video'), fe) && ok; }
+      } else if (linkRaw && !link) {
+        ok = ui.fieldError($('#video_link'), 'Paste a YouTube or Vimeo link, e.g. https://www.youtube.com/watch?v=… or https://vimeo.com/…') && ok;
+      } else if (!link && !(editing && CE.videoLink(existing && existing.video_url))) {
+        ok = ui.fieldError($('#video_link'), 'Paste a YouTube or Vimeo link.') && ok;
+      }
       if (!cap) ok = ui.fieldError($('#caption_text'), 'Captions are required so everyone can follow along.') && ok;
       if (!ok) { $f.find('[aria-invalid=true]').first().trigger('focus'); return; }
 
       var fd = new FormData();
       fd.append('title', title); fd.append('description', desc); fd.append('caption_text', cap);
-      if (file) fd.append('video', file);
+      if (sendFile) fd.append('video', file);
+      if (sendLink) fd.append('video_link', link.watch);
 
       var $btn = $('#submit-btn'), $prog = $f.find('.js-progress');
-      ui.busy($btn, true, file ? 'Uploading…' : 'Saving…');
-      CE.forms.progress($prog, file ? 0 : null);
+      ui.busy($btn, true, sendFile ? 'Uploading…' : 'Saving…');
+      CE.forms.progress($prog, sendFile ? 0 : null);
 
-      CE.api.upload(editing ? 'PUT' : 'POST', editing ? '/promos/' + encodeURIComponent(id) : '/promos', fd, function (p) { if (file) CE.forms.progress($prog, p); })
+      CE.api.upload(editing ? 'PUT' : 'POST', editing ? '/promos/' + encodeURIComponent(id) : '/promos', fd, function (p) { if (sendFile) CE.forms.progress($prog, p); })
         .then(function (r) {
           var saved = r.data || {}, pid = saved.id || id;
           var wasPub = editing ? existing.published !== false : true; // new promos are published by the API
@@ -90,7 +140,7 @@
         .then(function (pid) {
           dirty.clean();
           CE.cache.invalidate('promos'); CE.cache.invalidate('notifs');
-          CE.flash.set('success', editing ? 'Promo updated.' : 'Promo uploaded' + (pub ? ' and published — members were notified.' : ' as unpublished.'));
+          CE.flash.set('success', editing ? 'Promo updated.' : (sendLink ? 'Promo added' : 'Promo uploaded') + (pub ? ' and published — members were notified.' : ' as unpublished.'));
           window.location.href = 'promo.html?id=' + encodeURIComponent(pid);
         })
         .catch(function (err) {

@@ -101,8 +101,8 @@ Sign out and back in to pick up the new role. Admins land on the dashboard (`adm
 | `event-form.html[?id=]` | **admin** | create/edit with image upload (`image`), preview and progress bar |
 | `announcements.html`, `announcement.html?id=` | users | list with inline play; accessible custom audio player |
 | `announcement-form.html[?id=]` | **admin** | audio upload (`audio`), publish toggle |
-| `promos.html`, `promo.html?id=` | users | lazy-loaded thumbnails; `<video>` with a captions `<track>` and interactive transcript |
-| `promo-form.html[?id=]` | **admin** | video upload (`video`) plus captions with a live preview |
+| `promos.html`, `promo.html?id=` | users | lazy-loaded thumbnails; `<video>` with a captions `<track>` and interactive transcript, or the embedded YouTube/Vimeo player for linked promos |
+| `promo-form.html[?id=]` | **admin** | video upload (`video`) **or** a YouTube/Vimeo link (`video_link`), plus captions with a live preview |
 | `notifications.html` | users | inbox with detail view and links to related items; delete for admins |
 | `my-registrations.html` | users | ticket-style list with cancel |
 | `profile.html` | users | edit name and email; role and status are read-only |
@@ -135,6 +135,14 @@ The originals are React components that need framer-motion. These versions are r
 | `milestone-odometer` | `CE.fx.odometer($el, value)` | Admin key figures and home stats; live refreshes roll on from the previous value |
 | `success-ripple-animation` | `CE.fx.success()` | After registering for an event |
 | `tilt-card-glare` | `.tilt` | Event and promo cards (mouse/trackpad only) |
+
+### Promo videos: upload or link
+
+Admins choose **Upload a file** (MP4, MOV, AVI or MKV up to 8 MB) or **Paste a YouTube or Vimeo link** on the promo form. Links like `youtu.be/…`, `youtube.com/watch?v=…`, `/shorts/…` and `vimeo.com/…` are accepted.
+
+* The backend checks the link (`backend/src/utils/videoLink.js`) and stores it in the existing `video_url` column in a standard form, so the database didn't change.
+* Linked promos play inside the app in the provider's own player (YouTube's privacy-enhanced `youtube-nocookie.com` embed, captions on by default). The caption text is shown as the transcript. Cards use YouTube's thumbnail and show a *YouTube* or *Vimeo* badge.
+* Only YouTube and Vimeo are accepted, so the app never embeds pages from unknown sites.
 
 ## 8. Where the role-based access guards are
 

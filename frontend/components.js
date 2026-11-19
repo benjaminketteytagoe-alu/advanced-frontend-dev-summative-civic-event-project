@@ -89,6 +89,7 @@
     promoCard: function (p, opts) {
       opts = opts || {};
       var href = 'promo.html?id=' + encodeURIComponent(p.id);
+      var link = CE.videoLink(p.video_url); // YouTube/Vimeo link instead of an uploaded file
       var admin = '';
       // ADMIN-ONLY controls
       if (guard.can('promo:edit')) admin += '<a href="promo-form.html?id=' + encodeURIComponent(p.id) + '" class="icon-btn border border-paper-300 bg-white" aria-label="Edit ' + esc(p.title) + '">' + icon('edit', 'w-4 h-4') + '</a>';
@@ -97,11 +98,14 @@
       return '<article class="promo-card tilt relative card card-hover overflow-hidden flex flex-col reveal" data-id="' + esc(p.id) + '">' +
         '<a href="' + href + '" class="group relative block aspect-video overflow-hidden bg-ink-900" aria-label="Play ' + esc(p.title) + '">' +
         '<img src="' + CE.dice.glass(p.id) + '" alt="" class="absolute inset-0 w-full h-full object-cover opacity-80" loading="lazy">' +
-        // first-frame thumbnail: src is set lazily by views.lazyVideos()
-        '<video class="js-thumb zoom absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" muted playsinline preload="none" data-src="' + esc(CE.mediaUrl(p.video_url)) + '" aria-hidden="true" tabindex="-1"></video>' +
+        (link
+          // linked video: the provider's thumbnail (YouTube) over the generated artwork
+          ? (link.thumb ? '<img src="' + esc(link.thumb) + '" alt="" class="zoom absolute inset-0 w-full h-full object-cover" loading="lazy" onerror="this.remove()">' : '')
+          // uploaded file: first-frame thumbnail, src set lazily by views.lazyVideos()
+          : '<video class="js-thumb zoom absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" muted playsinline preload="none" data-src="' + esc(CE.mediaUrl(p.video_url)) + '" aria-hidden="true" tabindex="-1"></video>') +
         '<span class="absolute inset-0 bg-gradient-to-t from-ink-950/70 to-transparent"></span>' +
         '<span class="absolute inset-0 m-auto w-16 h-16 rounded-full bg-white/95 text-ink-900 grid place-items-center shadow-lift transition duration-500 group-hover:scale-110">' + icon('play', 'w-6 h-6 ml-1') + '</span>' +
-        '<span class="absolute left-3 top-3 flex gap-1.5">' + (p.caption_text ? '<span class="badge bg-white/90 text-ink-800">' + icon('cc', 'w-3 h-3') + 'Captions</span>' : '') +
+        '<span class="absolute left-3 top-3 flex gap-1.5">' + (link ? '<span class="badge bg-white/90 text-ink-800">' + icon('external', 'w-3 h-3') + esc(link.label) + '</span>' : '') + (p.caption_text ? '<span class="badge bg-white/90 text-ink-800">' + icon('cc', 'w-3 h-3') + 'Captions</span>' : '') +
         (p.published === false ? '<span class="badge badge-danger">Unpublished</span>' : '') + '</span>' +
         '</a>' +
         '<div class="p-5 flex-1 flex flex-col">' +

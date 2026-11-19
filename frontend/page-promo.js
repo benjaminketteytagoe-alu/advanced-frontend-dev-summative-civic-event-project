@@ -4,6 +4,10 @@
    built from caption_text, enabled by default. Native controls provide
    play/pause, volume and fullscreen; we add a captions toggle and an
    interactive transcript (click a line to jump there).
+
+   YouTube/Vimeo promos (video_url is a link) play in the provider's own
+   embedded player, which has its own captions and fullscreen controls; the
+   caption text is shown as a plain transcript.
    ========================================================================= */
 (function ($, CE) {
   'use strict';
@@ -11,20 +15,26 @@
   var id = CE.param('id'), promo = null, cues = [];
 
   function render() {
-    var src = CE.mediaUrl(promo.video_url);
+    var src = CE.mediaUrl(promo.video_url), link = CE.videoLink(promo.video_url);
     ui.setTitle(promo.title);
+    var player = link
+      ? '<iframe id="embed" class="block w-full aspect-video border-0 bg-ink-950" src="' + esc(link.embed) + '" title="' + esc(promo.title) + ' (' + esc(link.label) + ' video)" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>'
+      // preload="metadata": only headers are fetched until the user presses play (lazy media)
+      : '<video id="video" class="w-full aspect-video bg-ink-950" controls playsinline preload="metadata" poster="' + CE.dice.glass(promo.id) + '" aria-label="' + esc(promo.title) + '" aria-describedby="promo-desc">' +
+        '<source src="' + esc(src) + '">' +
+        '<p class="p-6 text-white">Your browser can’t play this video. <a class="underline" href="' + esc(src) + '" download>Download it</a> and read the transcript below.</p>' +
+        '</video>';
+    var tools = link
+      ? '<span class="inline-flex items-center gap-2 text-sm text-ink-600">' + icon('cc', 'w-4 h-4') + 'Captions and fullscreen are in the player’s controls.</span>' +
+        '<a href="' + esc(link.watch) + '" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">' + icon('external', 'w-4 h-4') + 'Watch on ' + esc(link.label) + '<span class="sr-only"> (opens in new tab)</span></a>'
+      : '<button type="button" id="cc-btn" class="btn btn-sm btn-primary" aria-pressed="true" ' + (promo.caption_text ? '' : 'disabled') + '>' + icon('cc', 'w-4 h-4') + '<span>Captions on</span></button>' +
+        '<button type="button" id="fs-btn" class="btn btn-sm btn-ghost">' + icon('external', 'w-4 h-4') + 'Fullscreen</button>' +
+        '<a href="' + esc(src) + '" download class="btn btn-sm btn-ghost">' + icon('download', 'w-4 h-4') + 'Download</a>';
     var html = '<div class="grid lg:grid-cols-[1fr_22rem] gap-8 items-start">' +
       '<div class="min-w-0">' +
       '<div class="crop-marks reveal"><div class="relative rounded-[1.5rem] overflow-hidden bg-ink-950 shadow-lift">' +
-      // preload="metadata": only headers are fetched until the user presses play (lazy media)
-      '<video id="video" class="w-full aspect-video bg-ink-950" controls playsinline preload="metadata" poster="' + CE.dice.glass(promo.id) + '" aria-label="' + esc(promo.title) + '" aria-describedby="promo-desc">' +
-      '<source src="' + esc(src) + '">' +
-      '<p class="p-6 text-white">Your browser can’t play this video. <a class="underline" href="' + esc(src) + '" download>Download it</a> and read the transcript below.</p>' +
-      '</video></div></div>' +
-      '<div class="mt-4 flex flex-wrap items-center gap-2 reveal">' +
-      '<button type="button" id="cc-btn" class="btn btn-sm btn-primary" aria-pressed="true" ' + (promo.caption_text ? '' : 'disabled') + '>' + icon('cc', 'w-4 h-4') + '<span>Captions on</span></button>' +
-      '<button type="button" id="fs-btn" class="btn btn-sm btn-ghost">' + icon('external', 'w-4 h-4') + 'Fullscreen</button>' +
-      '<a href="' + esc(src) + '" download class="btn btn-sm btn-ghost">' + icon('download', 'w-4 h-4') + 'Download</a>' +
+      player + '</div></div>' +
+      '<div class="mt-4 md:mt-12 flex flex-wrap items-center gap-2 reveal">' + tools +
       '<span id="video-error" class="hidden text-sm text-ember-700" role="alert"></span></div>' +
       '<header class="mt-8 reveal"><div class="flex flex-wrap items-center gap-2 mb-3"><span class="badge badge-ink">' + icon('film', 'w-3 h-3') + 'Promo</span>' +
       (promo.published === false ? '<span class="badge badge-danger">Unpublished</span>' : '') +
@@ -41,7 +51,7 @@
         '<div class="grid grid-cols-2 gap-2"><a href="promo-form.html?id=' + encodeURIComponent(promo.id) + '" class="btn btn-ghost btn-sm">' + icon('edit', 'w-4 h-4') + 'Edit</a>' +
         (guard.can('promo:delete') ? '<button type="button" id="del-btn" class="btn btn-danger btn-sm">' + icon('trash', 'w-4 h-4') + 'Delete</button>' : '') + '</div></div>' : '') +
       '<section class="card overflow-hidden reveal" aria-labelledby="tr-h"><div class="px-5 py-4 border-b border-paper-200 flex items-center justify-between">' +
-      '<h2 id="tr-h" class="font-display text-xl text-ink-900">Transcript</h2><span class="text-xs text-ink-500">Click a line to jump</span></div>' +
+      '<h2 id="tr-h" class="font-display text-xl text-ink-900">Transcript</h2>' + (link ? '' : '<span class="text-xs text-ink-500">Click a line to jump</span>') + '</div>' +
       '<ol id="transcript" class="max-h-[28rem] overflow-y-auto p-2 text-sm" aria-label="Transcript lines">' +
       (promo.caption_text ? '' : '<li class="p-4 text-ink-500">No captions or transcript were provided for this promo.</li>') + '</ol></section>' +
       '</aside></div>';
@@ -59,7 +69,18 @@
     }).join(''));
   }
 
+  // Linked (YouTube/Vimeo) promos: the transcript is plain text, since the
+  // embedded player's timeline can't be read or controlled from here.
+  function bindEmbed() {
+    if (promo.caption_text) {
+      var lines = CE.captions.cues(promo.caption_text, 60);
+      $('#transcript').html(lines.map(function (c) { return '<li class="px-3 py-2 text-ink-700">' + esc(c.text) + '</li>'; }).join(''));
+    }
+  }
+
   function bind() {
+    bindAdmin();
+    if (!document.getElementById('video')) return bindEmbed();
     var v = document.getElementById('video');
     var ccOn = true;
 
@@ -107,6 +128,9 @@
       var el = v; (el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen || function () { }).call(el);
     });
 
+  }
+
+  function bindAdmin() {
     // ADMIN publish toggle (optimistic + revert)
     $('#pub-toggle').on('change', function () {
       var $t = $(this), on = $t.is(':checked');

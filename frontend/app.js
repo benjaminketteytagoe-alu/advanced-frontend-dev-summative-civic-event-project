@@ -73,6 +73,42 @@
     return config.ORIGIN + (u.charAt(0) === '/' ? '' : '/') + u;
   }
 
+  // Promo videos can be an uploaded file or a YouTube/Vimeo link (the backend
+  // stores links in video_url in canonical form). Returns details for embedding,
+  // or null for an uploaded file. Mirrors backend/src/utils/videoLink.js.
+  function videoLink(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    var u; try { u = new URL(raw.trim()); } catch (e) { return null; }
+    if (!/^https?:$/.test(u.protocol)) return null;
+    var host = u.hostname.toLowerCase(), parts = u.pathname.split('/').filter(Boolean), yt = null;
+    if (host === 'youtu.be') yt = parts[0];
+    else if (/^((www|m|music)\.)?youtube(-nocookie)?\.com$/.test(host)) {
+      if (parts[0] === 'watch') yt = u.searchParams.get('v');
+      else if (['shorts', 'embed', 'live', 'v'].indexOf(parts[0]) > -1) yt = parts[1];
+    }
+    if (yt && /^[A-Za-z0-9_-]{11}$/.test(yt)) {
+      return {
+        provider: 'youtube', label: 'YouTube', id: yt,
+        watch: 'https://www.youtube.com/watch?v=' + yt,
+        // privacy-enhanced embed; captions on by default; no unrelated suggestions
+        embed: 'https://www.youtube-nocookie.com/embed/' + yt + '?rel=0&cc_load_policy=1&modestbranding=1',
+        thumb: 'https://i.ytimg.com/vi/' + yt + '/hqdefault.jpg'
+      };
+    }
+    if (/^((www|player)\.)?vimeo\.com$/.test(host)) {
+      var vm = host === 'player.vimeo.com' ? parts[1] : parts.filter(function (p) { return /^\d+$/.test(p); })[0];
+      if (vm && /^\d{6,12}$/.test(vm)) {
+        return {
+          provider: 'vimeo', label: 'Vimeo', id: vm,
+          watch: 'https://vimeo.com/' + vm,
+          embed: 'https://player.vimeo.com/video/' + vm + '?dnt=1&texttrack=en',
+          thumb: '' // Vimeo thumbnails need their API, so cards use generated artwork
+        };
+      }
+    }
+    return null;
+  }
+
   var fmt = {
     _d: function (v) { var d = v instanceof Date ? v : new Date(v); return isNaN(d) ? null : d; },
     date: function (v, opts) { var d = fmt._d(v); return d ? d.toLocaleDateString(undefined, opts || { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—'; },
@@ -1184,7 +1220,7 @@
   }
 
   window.CE = {
-    config: config, esc: esc, param: param, num: num, debounce: debounce, fmt: fmt, mediaUrl: mediaUrl,
+    config: config, esc: esc, param: param, num: num, debounce: debounce, fmt: fmt, mediaUrl: mediaUrl, videoLink: videoLink,
     local: local, session: session, auth: auth, flash: flash, api: api, ApiError: ApiError,
     handleError: handleError, guard: guard, cache: cache, data: data, notifs: notifs,
     ui: ui, icon: icon, dice: dice, layout: layout, ready: ready
