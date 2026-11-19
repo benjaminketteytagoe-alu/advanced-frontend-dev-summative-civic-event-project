@@ -6,7 +6,7 @@ import * as NotificationModel from '../models/notifications.model.js';
  */
 export const getAllAnnouncements = async (req, res, next) => {
     try {
-        const announcements = await AnnouncementModel.findAll(req.query);
+        const announcements = await AnnouncementModel.findAll(req.query, { publishedOnly: req.user.role !== 'admin' });
         return res.status(200).json({
             status: 200,
             message: 'Announcements retrieved successfully',
@@ -24,7 +24,10 @@ export const getAnnouncementById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const announcement = await AnnouncementModel.findById(id);
-        if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
+        // Unpublished announcements are only visible to admins
+        if (!announcement || (announcement.published === false && req.user.role !== 'admin')) {
+            return res.status(404).json({ status: 404, message: 'Announcement not found' });
+        }
         
         return res.status(200).json({
             status: 200,

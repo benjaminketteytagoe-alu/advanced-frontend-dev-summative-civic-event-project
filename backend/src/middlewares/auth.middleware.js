@@ -15,6 +15,10 @@ export const authenticate = async (req, res, next) => {
 
         const user = await Users.findById(decoded.id);
         if (!user) return res.status(401).json({ status: 401, message: 'User not found' });
+        // Disabled accounts lose access immediately, even with a token that hasn't expired yet
+        if (user.is_active === false) {
+            return res.status(401).json({ status: 401, message: 'Your account has been disabled. Please contact an administrator.' });
+        }
 
         req.user = user;
         next();

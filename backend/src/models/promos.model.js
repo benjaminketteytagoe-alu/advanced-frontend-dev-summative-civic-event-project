@@ -1,16 +1,18 @@
 import db from '../config/db.js';
 
-export const findAll = async ({ page = 1, limit = 20 } = {}) => {
+// publishedOnly: true for normal users, so unpublished drafts never leave the server
+export const findAll = async ({ page = 1, limit = 20, publishedOnly = false } = {}) => {
     const offset = (page - 1) * limit;
+    const where = publishedOnly ? 'WHERE published = true' : '';
 
     const { rows } = await db.query(
-        `SELECT * FROM promos
+        `SELECT * FROM promos ${where}
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2`,
         [limit, offset]
     );
 
-    const countRes = await db.query(`SELECT COUNT(*) FROM promos`);
+    const countRes = await db.query(`SELECT COUNT(*) FROM promos ${where}`);
     const total = parseInt(countRes.rows[0].count, 10);
 
     return {

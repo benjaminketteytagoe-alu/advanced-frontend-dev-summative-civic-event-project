@@ -1,10 +1,12 @@
 import db from '../config/db.js';
 
-export const findAll = async (filters = {}) => {
+// publishedOnly: true for normal users, so unpublished drafts never leave the server
+export const findAll = async (filters = {}, { publishedOnly = false } = {}) => {
     const { page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
     const res = await db.query(
-        'SELECT * FROM announcements ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        `SELECT * FROM announcements ${publishedOnly ? 'WHERE published = true' : ''}
+         ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
         [limit, offset]
     );
     return res.rows;

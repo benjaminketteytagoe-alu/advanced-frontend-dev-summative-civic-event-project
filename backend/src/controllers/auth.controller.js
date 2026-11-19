@@ -54,6 +54,10 @@ export const login = async (req, res, next) => {
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ status: 401, message: 'Invalid credentials' });
+        // Checked after the password, so this doesn't reveal which emails are registered
+        if (user.is_active === false) {
+            return res.status(403).json({ status: 403, message: 'Your account has been disabled. Please contact an administrator.' });
+        }
 
         const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 

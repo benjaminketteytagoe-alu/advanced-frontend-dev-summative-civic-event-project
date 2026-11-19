@@ -1,6 +1,7 @@
 import * as Promos from '../models/promos.model.js';
 import * as Notifications from '../models/notifications.model.js';
 import * as PromoModel from '../models/promos.model.js';
+import { normalizeVideoLink, VIDEO_LINK_ERROR } from '../utils/videoLink.js';
 
 /**
  * Get all promos (paginated)
@@ -8,7 +9,7 @@ import * as PromoModel from '../models/promos.model.js';
 export const list = async (req, res, next) => {
     try {
         const { page = 1, limit = 20 } = req.query;
-        const result = await Promos.findAll({ page: Number(page), limit: Number(limit) });
+        const result = await Promos.findAll({ page: Number(page), limit: Number(limit), publishedOnly: req.user.role !== 'admin' });
         return res.status(200).json({
             status: 200,
             message: 'Promos fetched successfully',
@@ -26,7 +27,8 @@ export const list = async (req, res, next) => {
 export const get = async (req, res, next) => {
     try {
         const promo = await Promos.findById(req.params.id);
-        if (!promo) {
+        // Unpublished promos are only visible to admins
+        if (!promo || (promo.published === false && req.user.role !== 'admin')) {
             return res.status(404).json({ status: 404, message: 'Promo not found' });
         }
         return res.status(200).json({ status: 200, data: promo });
@@ -40,14 +42,22 @@ export const get = async (req, res, next) => {
  */
 export const create = async (req, res, next) => {
     try {
-        const { title, description, caption_text } = req.body;
+        const { title, description, caption_text, video_link } = req.body;
         const created_by = req.user.id;
 
-        if (!req.file) {
-            return res.status(400).json({ status: 400, message: 'Video file is required' });
+        // A promo's video is either an uploaded file or a YouTube/Vimeo link
+        let video_url;
+        if (req.file) {
+            video_url = `${req.protocol}://${req.get('host')}/uploads/promos/${req.file.filename}`;
+        } else if (video_link) {
+            const link = normalizeVideoLink(video_link);
+            if (!link) {
+                return res.status(400).json({ status: 400, message: VIDEO_LINK_ERROR, errors: [{ field: 'video_link', message: VIDEO_LINK_ERROR }] });
+            }
+            video_url = link.url;
+        } else {
+            return res.status(400).json({ status: 400, message: 'Upload a video file or paste a YouTube or Vimeo link' });
         }
-
-        const video_url = `${req.protocol}://${req.get('host')}/uploads/promos/${req.file.filename}`;
 
         const promo = await Promos.create({
             title,
@@ -96,9 +106,15 @@ export const update = async (req, res, next) => {
             published: req.body.published,
         };
 
-        // Optional video upload
+        // Optional: replace the video with a new upload or a YouTube/Vimeo link
         if (req.file) {
             fieldsToUpdate.video_url = `${req.protocol}://${req.get('host')}/uploads/promos/${req.file.filename}`;
+        } else if (req.body.video_link) {
+            const link = normalizeVideoLink(req.body.video_link);
+            if (!link) {
+                return res.status(400).json({ status: 400, message: VIDEO_LINK_ERROR, errors: [{ field: 'video_link', message: VIDEO_LINK_ERROR }] });
+            }
+            fieldsToUpdate.video_url = link.url;
         }
 
         const updated = await Promos.update(id, fieldsToUpdate);
