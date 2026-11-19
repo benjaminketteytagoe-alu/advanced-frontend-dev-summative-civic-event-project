@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage notifications · CivicEvents+</title>
+  <meta name="description" content="Review and delete in-app notifications.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: admins only -->
+<body data-auth="admin" data-page="admin-notifications" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-8 grid lg:grid-cols-[15rem_1fr] gap-8">
+      <aside id="admin-side" aria-label="Admin navigation"></aside>
+
+      <div class="min-w-0">
+        <p class="eyebrow mb-2">Admin</p>
+        <h1 class="font-display text-4xl sm:text-5xl text-ink-900">Notifications</h1>
+        <p class="mt-2 text-sm text-ink-600 max-w-2xl">Broadcasts are created automatically when you publish an event, announcement or promo. Remove outdated or mistaken ones here — deletion applies to every member’s inbox.</p>
+
+        <!-- Admin delete form -->
+        <form id="del-form" class="card p-5 mt-6 grid md:grid-cols-[1fr_auto] gap-4 items-end" novalidate aria-labelledby="df-h">
+          <div class="form-row">
+            <h2 id="df-h" class="font-display text-xl text-ink-900 mb-3">Delete notifications</h2>
+            <label for="del-select" class="field-label">Choose a notification</label>
+            <select id="del-select" name="notification" class="field" required><option value="">Loading…</option></select>
+          </div>
+          <button type="submit" class="btn btn-danger">Delete selected</button>
+        </form>
+
+        <div class="card mt-4 overflow-hidden">
+          <div class="p-4 border-b border-paper-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by type">
+              <button type="button" class="chip" data-f="all" aria-pressed="true">All</button>
+              <button type="button" class="chip" data-f="event" aria-pressed="false">Events</button>
+              <button type="button" class="chip" data-f="announcement" aria-pressed="false">Announcements</button>
+              <button type="button" class="chip" data-f="promo" aria-pressed="false">Promos</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" id="bulk-del" class="btn btn-danger btn-sm" disabled>Delete checked (<span id="bulk-n">0</span>)</button>
+              <button type="button" id="refresh" class="btn btn-ghost btn-sm">Refresh</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table w-full text-sm">
+              <thead class="bg-paper-100/70"><tr>
+                <th scope="col" class="w-10"><input type="checkbox" id="check-all" class="w-4 h-4 accent-ink-900" aria-label="Select all visible notifications"></th>
+                <th scope="col">Notification</th><th scope="col">Type</th><th scope="col">Audience</th><th scope="col">Sent</th><th scope="col"><span class="sr-only">Actions</span></th>
+              </tr></thead>
+              <tbody id="n-body" aria-live="polite"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-admin-notifications.js"></script>
+</body>
+</html>

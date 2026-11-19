@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage content · CivicEvents+</title>
+  <meta name="description" content="Manage events, announcements and promos.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121a2e'/%3E%3Cpath d='M7 14l9-6 9 6M9 14v9M13 14v9M19 14v9M23 14v9M6 25h20' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='6' r='3' fill='%23c8562a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="tw-config.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- PAGE GUARD: admins only -->
+<body data-auth="admin" data-page="admin-content" class="min-h-screen flex flex-col font-sans">
+  <div id="app-header"></div>
+
+  <main id="main" tabindex="-1" class="flex-1">
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-8 grid lg:grid-cols-[15rem_1fr] gap-8">
+      <aside id="admin-side" aria-label="Admin navigation"></aside>
+
+      <div class="min-w-0">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <p class="eyebrow mb-2">Admin</p>
+            <h1 class="font-display text-4xl sm:text-5xl text-ink-900">Content</h1>
+            <p class="mt-2 text-sm text-ink-600">Publish, edit and remove everything members can see — including unpublished drafts.</p>
+          </div>
+          <a id="new-btn" href="event-form.html" class="btn btn-accent">+ New event</a>
+        </div>
+
+        <div class="mt-6 flex gap-1 p-1 rounded-full bg-paper-200 w-fit" role="tablist" aria-label="Content type">
+          <button type="button" role="tab" id="tab-events" aria-controls="panel" aria-selected="true" data-k="events" class="tab px-4 py-2 rounded-full text-sm font-semibold transition">Events</button>
+          <button type="button" role="tab" id="tab-announcements" aria-controls="panel" aria-selected="false" data-k="announcements" class="tab px-4 py-2 rounded-full text-sm font-semibold transition">Announcements</button>
+          <button type="button" role="tab" id="tab-promos" aria-controls="panel" aria-selected="false" data-k="promos" class="tab px-4 py-2 rounded-full text-sm font-semibold transition">Promos</button>
+        </div>
+
+        <div id="panel" role="tabpanel" class="card mt-4 overflow-hidden" aria-live="polite">
+          <div class="p-4 border-b border-paper-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+            <div class="relative flex-1 max-w-sm">
+              <label for="c-q" class="sr-only">Filter by title</label>
+              <input id="c-q" type="search" class="field" placeholder="Filter by title">
+            </div>
+            <p id="c-count" class="text-sm text-ink-600"></p>
+          </div>
+          <div class="overflow-x-auto"><table class="table w-full text-sm"><thead class="bg-paper-100/70" id="c-head"></thead><tbody id="c-body"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+  <script src="fx.js"></script>
+  <script src="components.js"></script>
+  <script src="page-admin-content.js"></script>
+</body>
+</html>
