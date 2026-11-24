@@ -7,7 +7,7 @@ CivicEvents+ is a web platform for local civic life. Residents browse community 
 ```
 ┌─────────────────────────┐   HTTPS/JSON + Bearer token   ┌──────────────────────────┐      SQL      ┌──────────────┐
 │ frontend/               │ ────────────────────────────► │ backend/                 │ ────────────► │ PostgreSQL   │
-│ HTML + Tailwind + jQuery│ ◄──────────────────────────── │ Node.js + Express API    │ ◄──────────── │ 7 tables     │
+│ HTML + Tailwind + jQuery│ ◄──────────────────────────── │ Node.js + Express API    │ ◄──────────── │ 8 tables     │
 │ static files, port 5500 │       JSON responses          │ port 4000, /api/...      │               │              │
 └─────────────────────────┘                               │ uploads/ (media files)   │               └──────────────┘
                                                           └──────────────────────────┘
@@ -26,6 +26,7 @@ CivicEvents+ is a web platform for local civic life. Residents browse community 
 | Browse published events, announcements and promos | ✅ | ✅ (drafts too) |
 | Register for or cancel events, leave feedback | ✅ | ✅ |
 | Receive notifications, edit own profile | ✅ | ✅ |
+| Send service requests and follow their status | ✅ | ✅ (sees and answers all) |
 | Create, edit, publish and delete content, including YouTube/Vimeo promo links | ❌ | ✅ |
 | See attendees and all feedback, enable or disable users, dashboard stats | ❌ | ✅ |
 
@@ -39,6 +40,7 @@ You need Node.js 18 or newer, PostgreSQL 15 or newer, and Python 3 (or any stati
 # 1. Database: create it, then load the schema
 psql -U <db-user> -c 'CREATE DATABASE <db-name>;'
 psql -U <db-user> -d <db-name> -f backend/migrations/001_create_tables.sql
+psql -U <db-user> -d <db-name> -f backend/migrations/003_service_requests.sql
 
 # 2. Backend: create backend/.env (variable names are in backend/README.md), then
 cd backend && npm install && npm run dev        # http://localhost:4000/health

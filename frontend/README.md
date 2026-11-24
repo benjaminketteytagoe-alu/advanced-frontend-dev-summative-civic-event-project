@@ -30,6 +30,7 @@ cd backend
 # 1. create the database and tables
 psql -U <db-user> -h <db-host> -p <db-port> -c 'CREATE DATABASE <db-name>;'
 psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/001_create_tables.sql
+psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/003_service_requests.sql
 # 2. set DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME and JWT_SECRET in backend/.env
 # 3. install and run
 npm install
@@ -109,6 +110,8 @@ Sign out and back in to pick up the new role. Admins land on the dashboard (`adm
 | `promo-form.html[?id=]` | **admin** | video upload (`video`) **or** a YouTube/Vimeo link (`video_link`), plus captions with a live preview |
 | `notifications.html` | users | inbox with detail view and links to related items; delete for admins |
 | `my-registrations.html` | users | ticket-style list with cancel |
+| `requests.html` | users | send a service request and follow its status (`/service-requests/mine`) |
+| `admin-requests.html` | **admin** | every service request, with status and reply (`PATCH /service-requests/:id`) |
 | `profile.html` | users | edit name and email; role and status are read-only |
 | `search.html?q=` | users | global search across events, announcements and promos |
 | `admin.html` | **admin** | KPIs and four SVG charts (`/dashboard/admin`), auto-refreshes every 60 seconds |

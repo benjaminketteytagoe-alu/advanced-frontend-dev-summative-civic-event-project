@@ -15,6 +15,7 @@ What it does:
   - users register for events and cancel registrations
   - users leave one review per event
   - admins see each event's attendees and reviews
+- **Service requests:** people report a problem such as a broken street light, and admins change its status and reply.
 - **Notifications:** publishing content sends an in-app notification to every user.
 - **Dashboards:** user and admin dashboards are built from aggregate queries.
 - **File uploads:** multer saves uploads to `uploads/`, and they're served at `/uploads/...`.
@@ -41,6 +42,7 @@ npm install
 ```bash
 psql -U <db-user> -h <db-host> -p <db-port> -c 'CREATE DATABASE <db-name>;'
 psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/001_create_tables.sql
+psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/003_service_requests.sql
 ```
 
 The migration uses `IF NOT EXISTS`, so it's safe to run again.
@@ -123,12 +125,12 @@ errors ─► src/middlewares/errorHandler.middleware.js   one JSON error format
 | `src/middlewares/` | `auth` (JWT + roles), `upload` (multer limits and types), `validateBody`, `errorHandler` |
 | `src/services/` | `email.service.js` (nodemailer) and `storage.service.js` (file helpers) |
 | `src/utils/` | `paginator.js`, `serviceTypes.js`, and `videoLink.js` (checks YouTube and Vimeo links) |
-| `migrations/` | `001_create_tables.sql`: the schema, `002_seed_data.sql`: sample data |
+| `migrations/` | `001_create_tables.sql`: the schema, `002_seed_data.sql`: sample data, `003_service_requests.sql`: the service requests table |
 | `uploads/` | Uploaded files (git-ignored, created when needed) |
 
 ## 4. Database
 
-There are seven tables, all defined in `migrations/001_create_tables.sql`:
+There are eight tables. The first seven are in `migrations/001_create_tables.sql`, and `service_requests` is in `003_service_requests.sql`:
 
 | Table | Holds |
 |-------|-------|
@@ -139,6 +141,7 @@ There are seven tables, all defined in `migrations/001_create_tables.sql`:
 | `announcements` | title, `audio_url`, `published` |
 | `promos` | title, description, `video_url` (an uploaded file or a YouTube/Vimeo link), `caption_text`, `published` |
 | `notifications` | title, message, type, `recipient_id` (`NULL` sends it to everyone), `metadata` |
+| `service_requests` | who sent it, type, location, description, status (`open`, `in_progress`, `done`, `declined`) and the admin's reply |
 
 ## 5. Endpoints
 
@@ -154,6 +157,7 @@ Every path starts with `/api`. 🔒 means a token is required, and 👑 means th
 | Announcements | 🔒 `GET /announcements`, `GET /announcements/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `audio`) |
 | Promos | 🔒 `GET /promos`, `GET /promos/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `video` **or** body field `video_link`) |
 | Notifications | 🔒 `GET /notifications`, `GET /notifications/:id` · 👑 `DELETE /notifications/:id` |
+| Service requests | 🔒 `GET /service-requests/types`, `GET /service-requests/mine`, `POST /service-requests` · 👑 `GET /service-requests`, `PATCH /service-requests/:id` (tells the sender) |
 | Dashboard | 🔒 `GET /dashboard/me` · 👑 `GET /dashboard/admin` |
 
 ## 6. Rules worth knowing
