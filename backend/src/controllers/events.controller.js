@@ -3,169 +3,138 @@ import path from 'path';
 import * as Events from '../models/events.model.js';
 import * as Notifications from '../models/notifications.model.js';
 
+// Every failed reply has the same shape
+function fail(res, status, message) {
+    return res.status(status).json({ status, message });
+}
+
+// The form sends published as text, so turn it into true, false, or undefined when it is missing
+function readPublished(value) {
+    if (value === undefined) return undefined;
+    return value === true || value === 'true';
+}
+
+// The web address of the uploaded image
+function imageUrl(req) {
+    return `${req.protocol}://${req.get('host')}/uploads/events/${req.file.filename}`;
+}
+
+// Delete an old image from the uploads folder
+function deleteImage(url) {
+    if (!url) return;
+    const file = path.join(process.cwd(), 'uploads', 'events', path.basename(url));
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+}
+
+// Tell everyone about an event (no recipient means all users)
+async function tellEveryone(event, req) {
+    await Notifications.create({
+        title: 'New Event Published',
+        message: `A new event titled "${event.title}" has been added!`,
+        type: 'event',
+        recipient_id: null,
+        metadata: { event_id: event.id },
+        created_by: req.user.id
+    });
+}
+
+// Create an event
 export const create = async (req, res, next) => {
     try {
         const { title, description, location, starts_at, ends_at } = req.body;
+        const published = readPublished(req.body.published);
+        const metadata = {};
+        if (req.file) metadata.image_url = imageUrl(req);
 
-        // Base event data
-        const eventData = {
-            title,
-            description,
-            location,
-            starts_at,
-            ends_at,
-            created_at: new Date(),
-            updated_at: new Date(),
-            metadata: {}
-        };
-
-        // If an image was uploaded, store its URL in metadata
-        if (req.file) {
-            const imageUrl = `${req.protocol}://${req.get('host')}/uploads/events/${req.file.filename}`;
-            eventData.metadata.image_url = imageUrl;
-        }
-
-        // Create the event
-        const createdEvent = await Events.create(eventData);
-
-        // Create a notification for all users
-        await Notifications.create({
-            title: 'New Event Published',
-            message: `A new event titled "${createdEvent.title}" has been added!`,
-            type: 'event',
-            recipient_id: null, // null → means broadcast to all
-            metadata: {
-                event_id: createdEvent.id
-            },
-            created_by: req.user?.id || null
-        });
+        const event = await Events.create({ title, description, location, starts_at, ends_at, metadata, published });
+        if (event.published) await tellEveryone(event, req);
 
         return res.status(201).json({
             status: 201,
-            message: 'Event created successfully and notification sent',
-            data: createdEvent,
+            message: event.published ? 'Event created successfully and notification sent' : 'Event saved as a draft',
+            data: event
         });
     } catch (err) {
         next(err);
     }
 };
 
+// List events. Admins get drafts too
 export const list = async (req, res, next) => {
     try {
-        const data = await Events.findAll(req.query);
-        return res.status(200).json({
-            status: 200,
-            message: 'Events fetched successfully',
-            data,
-        });
+        const admin = req.user.role === 'admin';
+        const data = admin ? await Events.findAll() : await Events.findPublished();
+
+        return res.status(200).json({ status: 200, message: 'Events fetched successfully', data });
     } catch (err) {
         next(err);
     }
 };
 
+// Get one event. To a normal user, a draft does not exist
 export const get = async (req, res, next) => {
     try {
         const event = await Events.findById(req.params.id);
-        if (!event)
-            return res.status(404).json({
-                status: 404,
-                message: 'Event not found',
-            });
+        if (!event) return fail(res, 404, 'Event not found');
 
-        return res.status(200).json({
-            status: 200,
-            message: 'Event fetched successfully',
-            data: event,
-        });
+        const admin = req.user.role === 'admin';
+        if (event.published === false && !admin) return fail(res, 404, 'Event not found');
+
+        return res.status(200).json({ status: 200, message: 'Event fetched successfully', data: event });
     } catch (err) {
         next(err);
     }
 };
 
+// Change an event. Anything not sent keeps its old value
 export const update = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const old = await Events.findById(id);
+        if (!old) return fail(res, 404, 'Event not found');
 
-        // Check if event exists
-        const existingEvent = await Events.findById(id);
-        if (!existingEvent) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Event not found',
-            });
-        }
-
-        // Prepare updated data
         const { title, description, location, starts_at, ends_at } = req.body;
-        const metadata = { ...existingEvent.metadata };
+        const published = readPublished(req.body.published);
+        const metadata = { ...old.metadata };
+        if (req.file) metadata.image_url = imageUrl(req);
 
-        // Handle new image upload
-        if (req.file) {
-            // Remove old image if it exists
-            if (metadata.image_url) {
-                const oldImagePath = path.join(
-                    process.cwd(),
-                    'uploads',
-                    'events',
-                    path.basename(metadata.image_url)
-                );
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath); // Delete the old file
-                }
-            }
-
-            // Add new image URL
-            const imageUrl = `${req.protocol}://${req.get('host')}/uploads/events/${req.file.filename}`;
-            metadata.image_url = imageUrl;
-        }
-
-        // Update the event data
-        const updatedData = {
-            title: title ?? existingEvent.title,
-            description: description ?? existingEvent.description,
-            location: location ?? existingEvent.location,
-            starts_at: starts_at ?? existingEvent.starts_at,
-            ends_at: ends_at ?? existingEvent.ends_at,
+        const event = await Events.update(id, {
+            title: title ?? old.title,
+            description: description ?? old.description,
+            location: location ?? old.location,
+            starts_at: starts_at ?? old.starts_at,
+            ends_at: ends_at ?? old.ends_at,
             metadata,
-            updated_at: new Date(),
-        };
-
-        // Save to DB
-        const updated = await Events.update(id, updatedData);
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Event updated successfully',
-            data: updated,
+            published
         });
+
+        // Only after the save worked, so a failed save never loses the old image
+        if (req.file) deleteImage(old.metadata?.image_url);
+
+        // Only when a draft goes live, so normal edits stay quiet
+        if (old.published === false && event.published) await tellEveryone(event, req);
+
+        return res.status(200).json({ status: 200, message: 'Event updated successfully', data: event });
     } catch (err) {
         next(err);
     }
 };
 
+// Delete an event
 export const remove = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const event = await Events.findById(id);
+        if (!event) return fail(res, 404, 'Event not found');
 
-        // Check if event exists
-        const existingEvent = await Events.findById(id);
-        if (!existingEvent) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Event not found',
-            });
-        }
-
-        // Proceed to delete
         await Events.remove(id);
 
         return res.status(200).json({
             status: 200,
             message: 'Event deleted successfully',
-            data: { id, title: existingEvent.title },
+            data: { id, title: event.title }
         });
     } catch (err) {
         next(err);
     }
 };
-
