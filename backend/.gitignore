@@ -3,6 +3,9 @@ node_modules/
 
 .env
 
+# Uploaded files
+uploads/
+
 # Logs
 logs/
 *.log
