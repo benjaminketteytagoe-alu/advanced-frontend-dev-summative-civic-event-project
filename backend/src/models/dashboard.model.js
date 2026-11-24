@@ -65,7 +65,7 @@ export const getUserStats = async (userId) => {
     const registrations = await db.query(`
         SELECT COUNT(*) AS total_registered_events
         FROM event_registrations
-        WHERE user_id = $1
+        WHERE user_id = $1 AND status = 'registered'
     `, [userId]);
     stats.registrations = registrations.rows[0];
 
@@ -87,9 +87,9 @@ export const getUserStats = async (userId) => {
     `, [userId]);
     stats.notifications = notifications.rows[0];
 
-    // Announcements and promos
-    const announcements = await db.query(`SELECT COUNT(*) AS total_announcements FROM announcements`);
-    const promos = await db.query(`SELECT COUNT(*) AS total_promos FROM promos`);
+    // Announcements and promos, without drafts
+    const announcements = await db.query(`SELECT COUNT(*) AS total_announcements FROM announcements WHERE published = true`);
+    const promos = await db.query(`SELECT COUNT(*) AS total_promos FROM promos WHERE published = true`);
     stats.announcements = announcements.rows[0];
     stats.promos = promos.rows[0];
 
