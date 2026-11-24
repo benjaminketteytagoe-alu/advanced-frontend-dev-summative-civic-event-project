@@ -1,182 +1,286 @@
-/* =========================================================================
-   Announcement detail — GET /api/announcements/:id
-   Accessible custom audio player wrapped around a native <audio> element:
-     • every control is a real <button>/<input> with a label
-     • Space/K play-pause, ←/→ seek 5s, J/L seek 10s, M mute (when the
-       player region has focus)
-     • seek slider exposes aria-valuetext ("1:05 of 3:20")
-     • fallback text + download link for browsers that can't play the format
-   ========================================================================= */
+// Announcement page: the audio player, and a few more announcements below
 (function ($, CE) {
   'use strict';
-  var ui = CE.ui, icon = CE.icon, esc = CE.esc, fmt = CE.fmt, guard = CE.guard;
-  var id = CE.param('id'), ann = null;
+  var ui = CE.ui, icon = CE.icon, esc = CE.esc, fmt = CE.fmt, can = CE.guard.can;
 
-  function adminBar() {
-    // ADMIN-ONLY management bar
-    if (!guard.can('announcement:edit')) return '';
-    return '<div class="card p-4 mt-6 flex flex-wrap items-center justify-between gap-3 reveal" aria-label="Admin controls">' +
-      '<div class="flex items-center gap-3"><span class="badge badge-ember">' + icon('shield', 'w-3 h-3') + 'Admin</span>' +
-      '<label for="pub-toggle" class="text-sm font-medium text-ink-800">Published</label>' +
-      '<input id="pub-toggle" type="checkbox" class="switch" role="switch" ' + (ann.published !== false ? 'checked' : '') + '></div>' +
-      '<div class="flex gap-2"><a href="announcement-form.html?id=' + encodeURIComponent(ann.id) + '" class="btn btn-ghost btn-sm">' + icon('edit', 'w-4 h-4') + 'Edit</a>' +
-      (guard.can('announcement:delete') ? '<button type="button" id="del-btn" class="btn btn-danger btn-sm">' + icon('trash', 'w-4 h-4') + 'Delete</button>' : '') + '</div></div>';
+  var id = CE.param('id');
+  var ann;               // the announcement
+  var audio;             // the browser's own audio player, driven by our buttons
+  var seeking = false;   // true while the person drags the slider
+  var morePlayer;        // the player the cards below share
+
+  // ---------- pieces of the page ----------
+
+  function audioAddress() { return esc(CE.mediaUrl(ann.audio_url)); }
+
+  function roundButton(name, iconName, label) {
+    return '<button type="button" id="' + name + '" class="icon-btn !text-white hover:!bg-white/10" aria-label="' + label + '">' + icon(iconName, 'w-5 h-5') + '</button>';
   }
 
-  function render() {
-    var src = CE.mediaUrl(ann.audio_url);
-    ui.setTitle(ann.title);
-    var html = '' +
-      '<article class="relative overflow-hidden rounded-[1.75rem] bg-ink-950 text-white shadow-lift reveal" id="player" tabindex="0" aria-label="Audio player for ' + esc(ann.title) + '. Press space to play or pause, arrow keys to seek.">' +
+  function heading() {
+    var draft = ann.published === false ? '<span class="badge badge-danger">Unpublished</span>' : '';
+    return '<div class="flex flex-wrap items-center gap-2 mb-3">' +
+      '<span class="badge bg-white/10 text-ember-200">' + icon('megaphone', 'w-3 h-3') + 'Announcement</span>' + draft +
+      '<span class="text-xs text-ink-300">' + esc(fmt.dateTime(ann.created_at)) + '</span></div>' +
+      '<h1 class="font-display text-3xl sm:text-5xl leading-tight mb-8 break-words">' + esc(ann.title) + '</h1>';
+  }
+
+  function speedBox() {
+    var speeds = [0.75, 1, 1.25, 1.5, 2].map(function (s) {
+      return '<option value="' + s + '"' + (s === 1 ? ' selected' : '') + '>' + s + '×</option>';
+    });
+    return '<label for="rate" class="sr-only">Playback speed</label>' +
+      '<select id="rate" class="rounded-full bg-white/10 border border-white/15 text-sm px-3 py-1.5 text-white focus:bg-white/20">' + speeds.join('') + '</select>';
+  }
+
+  function mainButtons() {
+    return '<div class="flex items-center gap-3 sm:gap-4">' + roundButton('back10', 'rewind', 'Rewind 10 seconds') +
+      '<button type="button" id="play" class="grid place-items-center w-16 h-16 rounded-full bg-white text-ink-950 shadow-lift transition hover:scale-105 active:scale-95" aria-label="Play">' + icon('play', 'w-7 h-7 ml-1') + '</button>' +
+      roundButton('fwd10', 'forward', 'Forward 10 seconds') +
+      '<span class="eq text-ember-300 ml-2" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="flex-1"></div>' + speedBox() + '</div>';
+  }
+
+  function seekBar() {
+    return '<div class="mt-6"><label for="seek" class="sr-only">Seek</label>' +
+      '<input id="seek" type="range" class="range" min="0" max="100" step="0.1" value="0" aria-valuetext="0:00 of unknown length">' +
+      '<div class="mt-2 flex justify-between text-xs font-mono text-ink-300"><span id="cur">0:00</span><span id="dur">–:––</span></div></div>';
+  }
+
+  function volumeBar() {
+    return '<div class="mt-5 flex items-center gap-3 max-w-xs">' + roundButton('mute', 'volume', 'Mute') +
+      '<label for="vol" class="sr-only">Volume</label><input id="vol" type="range" class="range" min="0" max="1" step="0.05" value="1" aria-valuetext="100%">' +
+      '<a href="' + audioAddress() + '" download class="icon-btn !text-white hover:!bg-white/10 shrink-0" aria-label="Download audio">' + icon('download', 'w-5 h-5') + '</a></div>';
+  }
+
+  function player() {
+    return '<article id="player" tabindex="0" class="relative overflow-hidden rounded-[1.75rem] bg-ink-950 text-white shadow-lift reveal"' +
+      ' aria-label="Audio player for ' + esc(ann.title) + '. Press space to play or pause, arrow keys to seek.">' +
       '<div aria-hidden="true" class="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-ember-600/30 blur-3xl float-slow"></div>' +
-      '<div class="relative grid md:grid-cols-[auto_1fr] gap-8 md:gap-12 p-6 sm:p-10 items-center">' +
+      '<div class="relative grid grid-cols-1 md:grid-cols-[auto_1fr] gap-8 md:gap-12 p-6 sm:p-10 items-center">' +
       '<div class="mx-auto relative w-48 h-48 sm:w-64 sm:h-64">' +
       '<img src="' + CE.dice.rings(ann.id) + '" alt="" class="disc w-full h-full rounded-full object-cover shadow-lift ring-8 ring-white/5">' +
       '<span class="absolute inset-0 m-auto w-10 h-10 rounded-full bg-ink-950 ring-4 ring-white/10"></span></div>' +
-      '<div class="min-w-0">' +
-      '<div class="flex flex-wrap items-center gap-2 mb-3"><span class="badge bg-white/10 text-ember-200">' + icon('megaphone', 'w-3 h-3') + 'Announcement</span>' +
-      (ann.published === false ? '<span class="badge badge-danger">Unpublished</span>' : '') +
-      '<span class="text-xs text-ink-300">' + esc(fmt.dateTime(ann.created_at)) + '</span></div>' +
-      '<h1 class="font-display text-3xl sm:text-5xl leading-tight mb-8">' + esc(ann.title) + '</h1>' +
-
-      // native audio element (no native controls; our controls drive it)
-      '<audio id="audio" preload="metadata">' +
-      '<source src="' + esc(src) + '">' +
-      'Your browser can’t play this audio format. <a href="' + esc(src) + '" download>Download the announcement</a> to listen offline.' +
-      '</audio>' +
-
-      '<div class="flex items-center gap-3 sm:gap-4">' +
-      '<button type="button" id="back10" class="icon-btn !text-white hover:!bg-white/10" aria-label="Rewind 10 seconds">' + icon('rewind', 'w-5 h-5') + '</button>' +
-      '<button type="button" id="play" class="grid place-items-center w-16 h-16 rounded-full bg-white text-ink-950 shadow-lift transition hover:scale-105 active:scale-95" aria-label="Play">' + icon('play', 'w-7 h-7 ml-1') + '</button>' +
-      '<button type="button" id="fwd10" class="icon-btn !text-white hover:!bg-white/10" aria-label="Forward 10 seconds">' + icon('forward', 'w-5 h-5') + '</button>' +
-      '<span class="eq text-ember-300 ml-2" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' +
-      '<div class="flex-1"></div>' +
-      '<label for="rate" class="sr-only">Playback speed</label>' +
-      '<select id="rate" class="rounded-full bg-white/10 border border-white/15 text-sm px-3 py-1.5 text-white focus:bg-white/20"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>' +
-      '</div>' +
-
-      '<div class="mt-6"><label for="seek" class="sr-only">Seek</label>' +
-      '<input id="seek" type="range" class="range" min="0" max="100" step="0.1" value="0" aria-valuetext="0:00 of unknown length">' +
-      '<div class="mt-2 flex justify-between text-xs font-mono text-ink-300"><span id="cur" aria-live="off">0:00</span><span id="dur">–:––</span></div></div>' +
-
-      '<div class="mt-5 flex items-center gap-3 max-w-xs">' +
-      '<button type="button" id="mute" class="icon-btn !text-white hover:!bg-white/10" aria-label="Mute" aria-pressed="false">' + icon('volume', 'w-5 h-5') + '</button>' +
-      '<label for="vol" class="sr-only">Volume</label><input id="vol" type="range" class="range" min="0" max="1" step="0.05" value="1" aria-valuetext="100%">' +
-      '<a href="' + esc(src) + '" download class="icon-btn !text-white hover:!bg-white/10 shrink-0" aria-label="Download audio">' + icon('download', 'w-5 h-5') + '</a></div>' +
+      '<div class="min-w-0">' + heading() +
+      '<audio id="audio" preload="metadata"><source src="' + audioAddress() + '"></audio>' +
+      mainButtons() + seekBar() + volumeBar() +
       '<p id="audio-error" class="hidden mt-5 rounded-xl bg-ember-700/40 px-4 py-3 text-sm" role="alert"></p>' +
-      '<p class="mt-5 text-xs text-ink-400">Keyboard: <kbd class="font-mono">Space</kbd> play/pause · <kbd class="font-mono">←/→</kbd> 5s · <kbd class="font-mono">J/L</kbd> 10s · <kbd class="font-mono">M</kbd> mute</p>' +
-      '</div></div></article>' +
-      adminBar() +
-      '<section class="mt-10 reveal" aria-labelledby="tr-h"><details class="card p-6 group" ' + (ann.transcript ? 'open' : '') + '>' +
-      '<summary class="flex items-center justify-between cursor-pointer list-none"><h2 id="tr-h" class="font-display text-2xl text-ink-900">Transcript</h2>' +
-      '<span class="transition-transform group-open:rotate-180">' + icon('down', 'w-5 h-5') + '</span></summary>' +
-      '<div class="mt-4 text-ink-700 leading-relaxed whitespace-pre-line">' + (ann.transcript ? esc(ann.transcript)
-        : '<p class="text-ink-500">No transcript was provided for this announcement. If you need an accessible version, please <a class="underline" href="mailto:' + CE.config.SUPPORT_EMAIL + '?subject=Transcript%20request:%20' + encodeURIComponent(ann.title) + '">request one from the civic office</a>.</p>') +
-      '</div></details></section>';
+      '<p class="mt-5 text-xs text-ink-300">Keyboard: Space play or pause · ←/→ 5s · J/L 10s · M mute</p></div></div></article>';
+  }
 
-    $('#ann-root').attr('aria-busy', 'false').html(html);
+  function adminBar() {
+    if (!can('announcement:edit')) return '';
+    return '<div class="card p-4 mt-6 flex flex-wrap items-center justify-between gap-3 reveal">' +
+      '<div class="flex items-center gap-3"><span class="badge badge-ember">' + icon('shield', 'w-3 h-3') + 'Admin</span>' +
+      '<label for="pub-toggle" class="text-sm font-medium text-ink-800">Published</label>' +
+      '<input id="pub-toggle" type="checkbox" class="switch" role="switch"' + (ann.published === false ? '' : ' checked') + '></div>' +
+      '<div class="flex gap-2"><a href="announcement-form.html?id=' + encodeURIComponent(ann.id) + '" class="btn btn-ghost btn-sm">' + icon('edit', 'w-4 h-4') + 'Edit</a>' +
+      '<button type="button" id="del-btn" class="btn btn-danger btn-sm">' + icon('trash', 'w-4 h-4') + 'Delete</button></div></div>';
+  }
+
+  // The database keeps no transcript, so people can ask for one
+  function transcript() {
+    var mail = 'mailto:' + CE.config.SUPPORT_EMAIL + '?subject=' + encodeURIComponent('Transcript request: ' + ann.title);
+    return '<section class="mt-10 reveal"><details class="card p-6 group">' +
+      '<summary class="flex items-center justify-between cursor-pointer list-none"><h2 class="font-display text-2xl text-ink-900">Transcript</h2>' +
+      '<span class="transition-transform group-open:rotate-180">' + icon('down', 'w-5 h-5') + '</span></summary>' +
+      '<p class="mt-4 text-ink-600">No transcript was provided for this announcement. If you need one, please <a class="underline" href="' + mail + '">ask the civic office</a>.</p></details></section>';
+  }
+
+  function show() {
+    ui.setTitle(ann.title);
+    $('#ann-root').attr('aria-busy', 'false').html(player() + adminBar() + transcript());
     $('#temp-title').remove(); // the real title is on the page now
     ui.reveal($('#ann-root'));
-    bindPlayer();
+    startAudio();
   }
 
-  function bindPlayer() {
-    var a = document.getElementById('audio');
-    var $seek = $('#seek'), $vol = $('#vol'), $player = $('#player');
-    var seeking = false;
+  // ---------- drawing the player ----------
 
-    function fill($r) { var v = ($r.val() - $r.attr('min')) / ($r.attr('max') - $r.attr('min')) * 100; $r[0].style.setProperty('--fill', v + '%'); }
-    function paint() {
-      var d = isFinite(a.duration) ? a.duration : 0;
-      if (!seeking) $seek.val(d ? (a.currentTime / d) * 100 : 0);
-      fill($seek);
-      $('#cur').text(fmt.duration(a.currentTime));
-      $seek.attr('aria-valuetext', fmt.duration(a.currentTime) + ' of ' + (d ? fmt.duration(d) : 'unknown length'));
-    }
-    function setPlaying(p) {
-      $player.toggleClass('is-playing', p);
-      $('#play').html(icon(p ? 'pause' : 'play', 'w-7 h-7' + (p ? '' : ' ml-1'))).attr('aria-label', p ? 'Pause' : 'Play');
-    }
-    function toggle() {
-      if (a.paused) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () { showError(); }); } else a.pause();
-    }
-    function skip(s) { if (isFinite(a.duration)) a.currentTime = Math.max(0, Math.min(a.duration, a.currentTime + s)); }
-    function showError() {
-      $('#audio-error').removeClass('hidden').html('This audio couldn’t be played in your browser. <a class="underline font-semibold" href="' + esc(CE.mediaUrl(ann.audio_url)) + '" download>Download it instead</a>.');
-      setPlaying(false);
-    }
+  function length() { return isFinite(audio.duration) ? audio.duration : 0; } // 0 while unknown
 
-    a.addEventListener('loadedmetadata', function () { $('#dur').text(fmt.duration(a.duration)); paint(); });
-    a.addEventListener('timeupdate', paint);
-    a.addEventListener('play', function () { setPlaying(true); });
-    a.addEventListener('pause', function () { setPlaying(false); });
-    a.addEventListener('ended', function () { setPlaying(false); });
-    a.addEventListener('error', showError, true);
-    $(a).find('source').on('error', showError);
+  // Colour the part of a slider that is behind the handle
+  function fillSlider($slider) {
+    var percent = $slider.val() / $slider.attr('max') * 100;
+    $slider[0].style.setProperty('--fill', percent + '%');
+  }
 
-    $('#play').on('click', toggle);
-    $('#back10').on('click', function () { skip(-10); });
-    $('#fwd10').on('click', function () { skip(10); });
-    $('#rate').on('change', function () { a.playbackRate = parseFloat(this.value); });
-    $seek.on('input', function () { seeking = true; fill($seek); if (isFinite(a.duration)) $('#cur').text(fmt.duration(this.value / 100 * a.duration)); })
-      .on('change', function () { seeking = false; if (isFinite(a.duration)) a.currentTime = this.value / 100 * a.duration; });
-    $vol.on('input', function () {
-      a.volume = parseFloat(this.value); a.muted = a.volume === 0; fill($vol);
-      $vol.attr('aria-valuetext', Math.round(a.volume * 100) + '%'); syncMute();
-    });
-    function syncMute() { $('#mute').attr({ 'aria-pressed': String(a.muted), 'aria-label': a.muted ? 'Unmute' : 'Mute' }).html(icon(a.muted ? 'mute' : 'volume', 'w-5 h-5')); }
-    $('#mute').on('click', function () { a.muted = !a.muted; syncMute(); });
-    fill($vol);
+  // Show where we are. A slider being dragged is left alone
+  function showTime() {
+    if (seeking) return;
+    var now = fmt.duration(audio.currentTime);
+    var total = length() ? fmt.duration(length()) : 'unknown length';
+    $('#seek').val(length() ? audio.currentTime / length() * 100 : 0).attr('aria-valuetext', now + ' of ' + total);
+    $('#cur').text(now);
+    if (length()) $('#dur').text(total);
+    fillSlider($('#seek'));
+  }
 
-    // keyboard shortcuts scoped to the player region
-    $player.on('keydown', function (e) {
-      if ($(e.target).is('select, input[type=range]') && /Arrow/.test(e.key)) return; // let sliders handle arrows
-      var k = e.key.toLowerCase();
-      if (k === ' ' || k === 'k') { if (!$(e.target).is('button, a')) { e.preventDefault(); toggle(); } }
-      else if (k === 'arrowleft') { e.preventDefault(); skip(-5); }
-      else if (k === 'arrowright') { e.preventDefault(); skip(5); }
-      else if (k === 'j') skip(-10);
-      else if (k === 'l') skip(10);
-      else if (k === 'm') { a.muted = !a.muted; syncMute(); }
-    });
+  function showPlaying() {
+    var playing = !audio.paused && !audio.ended;
+    $('#player').toggleClass('is-playing', playing);
+    $('#play').attr('aria-label', playing ? 'Pause' : 'Play').html(icon(playing ? 'pause' : 'play', playing ? 'w-7 h-7' : 'w-7 h-7 ml-1'));
+  }
 
-    // ADMIN publish toggle — optimistic, reverts on failure
-    $('#pub-toggle').on('change', function () {
-      var $t = $(this), on = $t.is(':checked');
-      $t.prop('disabled', true);
-      CE.actions.setPublished('announcement', ann.id, on).then(function () {
-        ann.published = on;
-        ui.toast('success', on ? 'Announcement published — listeners have been notified.' : 'Announcement unpublished. It’s now hidden from users.');
-      }).catch(function (err) { $t.prop('checked', !on); CE.handleError(err); })
-        .finally(function () { $t.prop('disabled', false); });
-    });
-    $('#del-btn').on('click', function () {
-      CE.actions.remove({ action: 'announcement:delete', path: '/announcements/' + ann.id, title: ann.title, cacheKey: 'announcements' }).then(function (ok) {
-        if (ok) { CE.flash.set('success', 'Announcement deleted.'); window.location.href = 'announcements.html'; }
-      });
+  function showVolume() {
+    var silent = audio.muted || audio.volume === 0;
+    $('#mute').attr('aria-label', silent ? 'Unmute' : 'Mute').html(icon(silent ? 'mute' : 'volume', 'w-5 h-5'));
+    $('#vol').attr('aria-valuetext', Math.round(audio.volume * 100) + '%');
+    fillSlider($('#vol'));
+  }
+
+  function showAudioError() {
+    $('#audio-error').removeClass('hidden').html('This audio couldn’t be played in your browser. <a class="underline font-semibold" href="' + audioAddress() + '" download>Download it instead</a>.');
+    showPlaying();
+  }
+
+  // ---------- controls ----------
+
+  function togglePlay() {
+    if (!audio.paused) return audio.pause();
+    if (morePlayer) morePlayer.pause(); // only one sound at a time
+    audio.play().catch(showAudioError);
+  }
+
+  // Move some seconds, but never before the start or past the end
+  function skip(seconds) {
+    if (!length()) return;
+    audio.currentTime = Math.max(0, Math.min(length(), audio.currentTime + seconds));
+  }
+
+  function dragSeek() {
+    seeking = true;
+    $('#cur').text(fmt.duration(this.value / 100 * length()));
+    fillSlider($('#seek'));
+  }
+
+  function dropSeek() {
+    seeking = false;
+    if (length()) audio.currentTime = this.value / 100 * length();
+  }
+
+  function changeVolume() {
+    audio.volume = Number(this.value);
+    audio.muted = false;
+  }
+
+  function toggleMute() { audio.muted = !audio.muted; }
+
+  // Keys work anywhere in the player, except where a control needs the same key
+  function pressKey(e) {
+    var key = e.key.toLowerCase();
+    var $on = $(e.target);
+    if ($on.is('select')) return;
+    if ($on.is('input') && key.indexOf('arrow') === 0) return;
+    if ($on.is('button, a') && key === ' ') return;
+
+    if (key === ' ' || key === 'k') togglePlay();
+    else if (key === 'arrowleft') skip(-5);
+    else if (key === 'arrowright') skip(5);
+    else if (key === 'j') skip(-10);
+    else if (key === 'l') skip(10);
+    else if (key === 'm') toggleMute();
+    else return;
+    e.preventDefault(); // no scrolling
+  }
+
+  function startAudio() {
+    audio = $('#audio')[0];
+    $(audio)
+      .on('loadedmetadata timeupdate', showTime)
+      .on('play pause ended', showPlaying)
+      .on('volumechange', showVolume)
+      .find('source').on('error', showAudioError);
+    showVolume();
+  }
+
+  // ---------- admin ----------
+
+  // The switch moves at once, and moves back if saving fails
+  function togglePublished() {
+    var $switch = $(this), on = this.checked;
+    $switch.prop('disabled', true);
+    CE.actions.setPublished('announcement', ann.id, on)
+      .then(function () { ui.toast('success', on ? 'Announcement published. Listeners have been notified.' : 'Announcement unpublished and hidden from users.'); })
+      .catch(function (err) {
+        $switch.prop('checked', !on);
+        CE.handleError(err);
+      })
+      .finally(function () { $switch.prop('disabled', false); });
+  }
+
+  function removeAnn() {
+    CE.actions.remove({ action: 'announcement:delete', path: '/announcements/' + ann.id, title: ann.title, cacheKey: 'announcements' }).then(function (done) {
+      if (!done) return;
+      CE.flash.set('success', 'Announcement deleted.');
+      window.location.href = 'announcements.html';
     });
   }
 
-  function loadMore() {
-    CE.data.announcements().then(function (list) {
-      list = CE.data.visible(list).filter(function (x) { return x.id !== id; }).slice(0, 4);
-      if (!list.length) { $('#more').closest('section').remove(); return; }
-      $('#more').html(list.map(function (x) { return CE.views.announcementCard(x); }).join(''));
-      CE.views.inlineAudio($('#more')); CE.views.lazyDurations($('#more')); ui.reveal($('#more'));
-    }).catch(function () { $('#more').closest('section').remove(); });
+  // ---------- more announcements ----------
+
+  function hideMore() { $('#more').closest('section').hide(); }
+
+  function showMore(list) {
+    var others = CE.data.visible(list).filter(function (a) { return a.id !== id; }).slice(0, 4);
+    if (!others.length) return hideMore();
+    $('#more').html(others.map(function (a) { return CE.views.announcementCard(a); }).join(''));
+    CE.views.lazyDurations($('#more')); // read each length from its audio file
+    ui.reveal($('#more'));
+  }
+
+  function loadMore() { CE.data.announcements().then(showMore).catch(hideMore); }
+
+  function removeMore() {
+    var $button = $(this);
+    CE.actions.remove({
+      action: 'announcement:delete',
+      path: '/announcements/' + $button.attr('data-id'),
+      title: $button.attr('data-title'),
+      cacheKey: 'announcements',
+      $card: $button.closest('article'),
+      after: loadMore
+    });
+  }
+
+  function startMore() {
+    morePlayer = CE.views.inlineAudio($('#more'));
+    $(morePlayer).on('play', function () { if (audio) audio.pause(); }); // only one sound at a time
+    $('#more').on('click', '.js-del-ann', removeMore);
+    loadMore();
+  }
+
+  // ---------- load ----------
+
+  function showMissing(title, text) {
+    $('#ann-root').attr('aria-busy', 'false').html(ui.empty(title, text, '<a href="announcements.html" class="btn btn-primary">See all announcements</a>', 'megaphone'));
   }
 
   function load() {
-    if (!id) { $('#ann-root').html(ui.empty('No announcement selected', '', '<a href="announcements.html" class="btn btn-primary">See all announcements</a>', 'megaphone')); return; }
-    CE.api.get('/announcements/' + encodeURIComponent(id)).then(function (r) {
-      ann = r.data;
-      if (!ann || (ann.published === false && !guard.can('content:viewUnpublished'))) throw new CE.ApiError(404, 'Not found');
-      render(); loadMore();
-    }).catch(function (err) {
-      if (err.status === 404 || err.status === 500) $('#ann-root').html(ui.empty('Announcement not found', 'It may have been removed or unpublished.', '<a href="announcements.html" class="btn btn-primary">See all announcements</a>', 'megaphone'));
-      else ui.errorState($('#ann-root'), err, load);
-    });
+    if (!id) return showMissing('No announcement selected', '');
+    CE.api.get('/announcements/' + encodeURIComponent(id))
+      .then(function (reply) { ann = reply.data; show(); })
+      .catch(function (err) {
+        if (err.status === 404) return showMissing('Announcement not found', 'It may have been removed or unpublished.');
+        $('#ann-root').attr('aria-busy', 'false');
+        ui.errorState($('#ann-root'), err, load);
+      });
   }
 
-  CE.ready(load);
+  // Start
+  CE.ready(function () {
+    load();
+    startMore();
+    $('#ann-root')
+      .on('click', '#play', togglePlay)
+      .on('click', '#back10', function () { skip(-10); })
+      .on('click', '#fwd10', function () { skip(10); })
+      .on('click', '#mute', toggleMute)
+      .on('change', '#rate', function () { audio.playbackRate = Number(this.value); })
+      .on('input', '#seek', dragSeek)
+      .on('change', '#seek', dropSeek)
+      .on('input', '#vol', changeVolume)
+      .on('keydown', '#player', pressKey)
+      .on('change', '#pub-toggle', togglePublished)
+      .on('click', '#del-btn', removeAnn);
+  });
 })(jQuery, window.CE);
