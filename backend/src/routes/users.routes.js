@@ -6,42 +6,22 @@ import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-// -----------------------------
-// Admin-only routes
-// -----------------------------
+// The role and the status cannot be changed from here
+const rules = [
+    body('full_name').optional().isString().trim().notEmpty().withMessage('Full name cannot be empty'),
+    body('email').optional().isEmail().withMessage('Must be a valid email'),
+    body('role').not().exists().withMessage('Cannot update role'),
+    body('is_active').not().exists().withMessage('Cannot update status'),
+];
 
-// List all users (paginated)
-router.get('/', authenticate, authorize(['admin']), controller.list);
-
-// Get single user by ID
-router.get('/:id', authenticate, authorize(['admin']), controller.get);
-
-// Enable user
-router.patch('/:id/enable', authenticate, authorize(['admin']), controller.enable);
-
-// Disable user
-router.patch('/:id/disable', authenticate, authorize(['admin']), controller.disable);
-
-
-// -----------------------------
-// User self-management
-// -----------------------------
-
-// Get own profile
+// Your own profile
 router.get('/profile/me', authenticate, controller.getSelf);
+router.patch('/profile/me', authenticate, rules, validateBody, controller.updateSelf);
 
-// Update own profile (cannot update role)
-router.patch(
-    '/profile/me',
-    authenticate,
-    [
-        body('full_name').optional().notEmpty().withMessage('Full name cannot be empty'),
-        body('email').optional().isEmail().withMessage('Must be a valid email'),
-        body('role').not().exists().withMessage('Cannot update role'),
-        body('is_active').not().exists().withMessage('Cannot update status'),
-    ],
-    validateBody,
-    controller.updateSelf
-);
+// Admins only
+router.get('/', authenticate, authorize(['admin']), controller.list);
+router.get('/:id', authenticate, authorize(['admin']), controller.get);
+router.patch('/:id/enable', authenticate, authorize(['admin']), controller.enable);
+router.patch('/:id/disable', authenticate, authorize(['admin']), controller.disable);
 
 export default router;

@@ -1,199 +1,115 @@
-import * as AnnouncementModel from '../models/announcements.model.js';
-import * as NotificationModel from '../models/notifications.model.js';
+import * as Announcements from '../models/announcements.model.js';
+import * as Notifications from '../models/notifications.model.js';
 import { fileUrl, deleteFile } from '../utils/files.js';
 
-// Get all announcements
+// Every failed reply has the same shape
+function fail(res, status, message) {
+    return res.status(status).json({ status, message });
+}
+
+// Tell everyone about an announcement (no recipient means all users)
+async function tellEveryone(announcement, req) {
+    await Notifications.create({
+        title: 'New Announcement Published',
+        message: `A new announcement titled "${announcement.title}" has been added.`,
+        type: 'announcement',
+        recipient_id: null,
+        metadata: { announcement_id: announcement.id },
+        created_by: req.user.id
+    });
+}
+
+// List announcements. Admins get drafts too
 export const getAllAnnouncements = async (req, res, next) => {
     try {
-        const announcements = await AnnouncementModel.findAll(req.query, { publishedOnly: req.user.role !== 'admin' });
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcements retrieved successfully',
-            data: announcements
-        });
-    } catch (error) {
-        next(error);
+        const { page = 1, limit = 20 } = req.query;
+        const publishedOnly = req.user.role !== 'admin';
+        const data = await Announcements.findAll({ page: Number(page), limit: Number(limit), publishedOnly });
+        return res.status(200).json({ status: 200, message: 'Announcements retrieved successfully', data });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Get a single announcement
+// Get one. To a normal user, a draft does not exist
 export const getAnnouncementById = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const announcement = await AnnouncementModel.findById(id);
-        // Unpublished announcements are only visible to admins
-        if (!announcement || (announcement.published === false && req.user.role !== 'admin')) {
-            return res.status(404).json({ status: 404, message: 'Announcement not found' });
-        }
-        
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcement retrieved successfully',
-            data: announcement
-        });
-    } catch (error) {
-        next(error);
+        const data = await Announcements.findById(req.params.id);
+        const admin = req.user.role === 'admin';
+        if (!data || (!data.published && !admin)) return fail(res, 404, 'Announcement not found');
+        return res.status(200).json({ status: 200, message: 'Announcement retrieved successfully', data });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Create a new announcement (with audio file upload)
+// Create an announcement
 export const createAnnouncement = async (req, res, next) => {
     try {
-        const { title, published = true } = req.body;
+        const { title, published } = req.body;
+        if (!req.file) return fail(res, 400, 'Audio file is required');
 
-        // Ensure file was uploaded
-        if (!req.file) {
-            return res.status(400).json({
-                status: 400,
-                message: 'Audio file is required',
-            });
-        }
-
-        const audio_url = fileUrl(req, 'announcements');
-
-        // Create announcement
-        const created = await AnnouncementModel.create({
-            title,
-            audio_url,
-            published,
-        });
-
-        // Tell everyone, unless it is a draft
-        if (created.published) await NotificationModel.create({
-            title: 'New Announcement Published',
-            message: `A new announcement titled "${title}" has been added.`,
-            type: 'announcement',
-            recipient_id: null, // broadcast
-            metadata: { announcement_id: created.id },
-            created_by: req.user?.id || null,
-        });
-
-        return res.status(201).json({
-            status: 201,
-            message: 'Announcement created successfully',
-            data: created,
-        });
-    } catch (error) {
-        next(error);
+        const data = await Announcements.create({ title, published, audio_url: fileUrl(req, 'announcements') });
+        if (data.published) await tellEveryone(data, req);
+        return res.status(201).json({ status: 201, message: 'Announcement created successfully', data });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Update an announcement
+// Change an announcement. The audio and published keep their old value when they are not sent
 export const updateAnnouncement = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const old = await Announcements.findById(req.params.id);
+        if (!old) return fail(res, 404, 'Announcement not found');
 
-        // Check if announcement exists
-        const existing = await AnnouncementModel.findById(id);
-        if (!existing) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Announcement not found',
-            });
-        }
-
-        // Anything not sent keeps its old value
-        const { title = existing.title, published = existing.published } = req.body;
-        const audio_url = req.file ? fileUrl(req, 'announcements') : existing.audio_url;
-        const updated = await AnnouncementModel.update(id, { title, published, audio_url });
+        const { title, published = old.published } = req.body;
+        const audio_url = req.file ? fileUrl(req, 'announcements') : old.audio_url;
+        const data = await Announcements.update(old.id, { title, published, audio_url });
 
         // The old audio goes only after the new one is saved
-        if (req.file) deleteFile(existing.audio_url, 'announcements');
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcement updated successfully',
-            data: updated,
-        });
-    } catch (error) {
-        next(error);
+        if (req.file) deleteFile(old.audio_url, 'announcements');
+        return res.status(200).json({ status: 200, message: 'Announcement updated successfully', data });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Delete an announcement
+// Delete it, and its file
 export const deleteAnnouncement = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const old = await Announcements.findById(req.params.id);
+        if (!old) return fail(res, 404, 'Announcement not found');
 
-        // Check if announcement exists
-        const existing = await AnnouncementModel.findById(id);
-        if (!existing) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Announcement not found',
-            });
-        }
-
-        await AnnouncementModel.remove(id);
-        deleteFile(existing.audio_url, 'announcements');
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcement deleted successfully'
-        });
-    } catch (error) {
-        next(error);
+        await Announcements.remove(old.id);
+        deleteFile(old.audio_url, 'announcements');
+        return res.status(200).json({ status: 200, message: 'Announcement deleted successfully' });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Publish an announcement
+// Publish, and tell everyone if it was hidden before
 export const publishAnnouncement = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const old = await Announcements.findById(req.params.id);
+        if (!old) return fail(res, 404, 'Announcement not found');
 
-        // Check if announcement exists
-        const existing = await AnnouncementModel.findById(id);
-        if (!existing) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Announcement not found',
-            });
-        }
-
-        const announcement = await AnnouncementModel.publish(id);
-
-        // Optional: create a notification when published
-        await NotificationModel.create({
-            title: 'Announcement Published',
-            message: `The announcement "${announcement.title}" is now live.`,
-            type: 'announcement',
-            recipient_id: null,
-            metadata: { announcement_id: announcement.id },
-            created_by: req.user?.id || null
-        });
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcement published successfully',
-            data: announcement,
-        });
-    } catch (error) {
-        next(error);
+        const data = await Announcements.setPublished(old.id, true);
+        if (!old.published) await tellEveryone(data, req);
+        return res.status(200).json({ status: 200, message: 'Announcement published successfully', data });
+    } catch (err) {
+        next(err);
     }
 };
 
-// Unpublish an announcement
+// Hide it from users
 export const unpublishAnnouncement = async (req, res, next) => {
     try {
-        const { id } = req.params;
-
-        // Check if announcement exists
-        const existing = await AnnouncementModel.findById(id);
-        if (!existing) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Announcement not found',
-            });
-        }
-        
-        const announcement = await AnnouncementModel.unpublish(id);
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Announcement unpublished successfully',
-            data: announcement,
-        });
-    } catch (error) {
-        next(error);
+        const data = await Announcements.setPublished(req.params.id, false);
+        if (!data) return fail(res, 404, 'Announcement not found');
+        return res.status(200).json({ status: 200, message: 'Announcement unpublished successfully', data });
+    } catch (err) {
+        next(err);
     }
 };

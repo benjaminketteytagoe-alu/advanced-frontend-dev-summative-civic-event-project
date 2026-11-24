@@ -1,102 +1,58 @@
 import db from '../config/db.js';
 
-// publishedOnly: true for normal users, so unpublished drafts never leave the server
-export const findAll = async ({ page = 1, limit = 20, publishedOnly = false } = {}) => {
-    const offset = (page - 1) * limit;
+// One page of promos, newest first. publishedOnly leaves drafts out, for normal users
+export const findAll = async ({ page, limit, publishedOnly }) => {
     const where = publishedOnly ? 'WHERE published = true' : '';
 
     const { rows } = await db.query(
-        `SELECT * FROM promos ${where}
-        ORDER BY created_at DESC
-        LIMIT $1 OFFSET $2`,
-        [limit, offset]
+        `SELECT * FROM promos ${where} ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, (page - 1) * limit]
     );
+    const count = await db.query(`SELECT COUNT(*) FROM promos ${where}`);
+    const total = Number(count.rows[0].count);
 
-    const countRes = await db.query(`SELECT COUNT(*) FROM promos ${where}`);
-    const total = parseInt(countRes.rows[0].count, 10);
-
-    return {
-        promos: rows,
-        pagination: {
-            total,
-            page,
-            limit,
-            pages: Math.ceil(total / limit),
-        },
-    };
+    return { promos: rows, pagination: { total, page, limit, pages: Math.ceil(total / limit) } };
 };
 
+// One promo
 export const findById = async (id) => {
-    const res = await db.query(`SELECT * FROM promos WHERE id=$1`, [id]);
-    return res.rows[0] || null;
+    const { rows } = await db.query('SELECT * FROM promos WHERE id = $1', [id]);
+    return rows[0];
 };
 
+// Save a new promo, published unless told otherwise
 export const create = async ({ title, description, video_url, caption_text, created_by, published = true }) => {
-    const res = await db.query(
+    const { rows } = await db.query(
         `INSERT INTO promos (title, description, video_url, caption_text, created_by, published)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
         [title, description, video_url, caption_text, created_by, published]
     );
-    return res.rows[0];
+    return rows[0];
 };
 
-export const update = async (id, fields) => {
-    // Build dynamic SQL
-    const updates = [];
-    const values = [];
-    let index = 1;
-
-    for (const [key, value] of Object.entries(fields)) {
-        if (value !== undefined) {
-            updates.push(`${key}=$${index}`);
-            values.push(value);
-            index++;
-        }
-    }
-
-    if (updates.length === 0) return findById(id);
-
-    const query = `
-    UPDATE promos
-    SET ${updates.join(', ')}, updated_at=NOW()
-    WHERE id=$${index}
-    RETURNING *`;
-
-    const res = await db.query(query, [...values, id]);
-    return res.rows[0] || null;
+// Change a promo
+export const update = async (id, { title, description, video_url, caption_text, published }) => {
+    const { rows } = await db.query(
+        `UPDATE promos
+         SET title = $1, description = $2, video_url = $3, caption_text = $4, published = $5, updated_at = NOW()
+         WHERE id = $6
+         RETURNING *`,
+        [title, description, video_url, caption_text, published, id]
+    );
+    return rows[0];
 };
 
+// Publish or unpublish
+export const setPublished = async (id, published) => {
+    const { rows } = await db.query(
+        'UPDATE promos SET published = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        [published, id]
+    );
+    return rows[0];
+};
+
+// Delete a promo
 export const remove = async (id) => {
-    const res = await db.query(
-        `DELETE FROM promos WHERE id=$1 RETURNING *`,
-        [id]
-    );
-    return res.rows[0] || null;
-};
-
-export const publish = async (id) => {
-    const res = await db.query(
-        `UPDATE promos
-         SET published = true,
-             updated_at = NOW()
-         WHERE id = $1
-         RETURNING *`,
-        [id]
-    );
-
-    return res.rows[0];
-};
-
-export const unpublish = async (id) => {
-    const res = await db.query(
-        `UPDATE promos
-         SET published = false,
-             updated_at = NOW()
-         WHERE id = $1
-         RETURNING *`,
-        [id]
-    );
-
-    return res.rows[0];
+    await db.query('DELETE FROM promos WHERE id = $1', [id]);
 };

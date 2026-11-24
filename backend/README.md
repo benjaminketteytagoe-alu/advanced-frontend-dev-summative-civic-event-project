@@ -70,13 +70,6 @@ JWT_SECRET=<long-random-string>
 # Optional
 PORT=4000
 NODE_ENV=development
-# Optional e-mail (nodemailer). Leave unset if you don't send mail.
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
 ```
 
 **Run it:**
@@ -123,8 +116,7 @@ errors ─► src/middlewares/errorHandler.middleware.js   one JSON error format
 | `src/controllers/` | Handles each endpoint and sends `{ status, message, data, pagination? }` |
 | `src/models/` | All SQL, always parameterised (`$1, $2…`), so input is never pasted into a query |
 | `src/middlewares/` | `auth` (JWT + roles), `upload` (multer limits and types), `validateBody`, `errorHandler` |
-| `src/services/` | `email.service.js` (nodemailer) and `storage.service.js` (file helpers) |
-| `src/utils/` | `paginator.js`, `serviceTypes.js`, and `videoLink.js` (checks YouTube and Vimeo links) |
+| `src/utils/` | `files.js` (uploaded files), `serviceTypes.js` (kinds of service request) and `videoLink.js` (checks YouTube and Vimeo links) |
 | `migrations/` | `001_create_tables.sql`: the schema, `002_seed_data.sql`: sample data, `003_service_requests.sql`: the service requests table |
 | `uploads/` | Uploaded files (git-ignored, created when needed) |
 
