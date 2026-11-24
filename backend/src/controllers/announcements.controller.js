@@ -1,5 +1,6 @@
 import * as AnnouncementModel from '../models/announcements.model.js';
 import * as NotificationModel from '../models/notifications.model.js';
+import { fileUrl, deleteFile } from '../utils/files.js';
 
 // Get all announcements
 export const getAllAnnouncements = async (req, res, next) => {
@@ -48,9 +49,7 @@ export const createAnnouncement = async (req, res, next) => {
             });
         }
 
-        // Construct full file URL dynamically (based on your server’s base URL)
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const audio_url = `${baseUrl}/uploads/announcements/${req.file.filename}`;
+        const audio_url = fileUrl(req, 'announcements');
 
         // Create announcement
         const created = await AnnouncementModel.create({
@@ -59,8 +58,8 @@ export const createAnnouncement = async (req, res, next) => {
             published,
         });
 
-        // Create a broadcast notification for all users
-        await NotificationModel.create({
+        // Tell everyone, unless it is a draft
+        if (created.published) await NotificationModel.create({
             title: 'New Announcement Published',
             message: `A new announcement titled "${title}" has been added.`,
             type: 'announcement',
@@ -93,7 +92,13 @@ export const updateAnnouncement = async (req, res, next) => {
             });
         }
 
-        const updated = await AnnouncementModel.update(id, req.body);
+        // Anything not sent keeps its old value
+        const { title = existing.title, published = existing.published } = req.body;
+        const audio_url = req.file ? fileUrl(req, 'announcements') : existing.audio_url;
+        const updated = await AnnouncementModel.update(id, { title, published, audio_url });
+
+        // The old audio goes only after the new one is saved
+        if (req.file) deleteFile(existing.audio_url, 'announcements');
 
         return res.status(200).json({
             status: 200,
@@ -120,6 +125,7 @@ export const deleteAnnouncement = async (req, res, next) => {
         }
 
         await AnnouncementModel.remove(id);
+        deleteFile(existing.audio_url, 'announcements');
 
         return res.status(200).json({
             status: 200,

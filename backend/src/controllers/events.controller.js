@@ -1,7 +1,6 @@
-import fs from 'fs';
-import path from 'path';
 import * as Events from '../models/events.model.js';
 import * as Notifications from '../models/notifications.model.js';
+import { fileUrl, deleteFile } from '../utils/files.js';
 
 // Every failed reply has the same shape
 function fail(res, status, message) {
@@ -12,18 +11,6 @@ function fail(res, status, message) {
 function readPublished(value) {
     if (value === undefined) return undefined;
     return value === true || value === 'true';
-}
-
-// The web address of the uploaded image
-function imageUrl(req) {
-    return `${req.protocol}://${req.get('host')}/uploads/events/${req.file.filename}`;
-}
-
-// Delete an old image from the uploads folder
-function deleteImage(url) {
-    if (!url) return;
-    const file = path.join(process.cwd(), 'uploads', 'events', path.basename(url));
-    if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
 // Tell everyone about an event (no recipient means all users)
@@ -44,7 +31,7 @@ export const create = async (req, res, next) => {
         const { title, description, location, starts_at, ends_at } = req.body;
         const published = readPublished(req.body.published);
         const metadata = {};
-        if (req.file) metadata.image_url = imageUrl(req);
+        if (req.file) metadata.image_url = fileUrl(req, 'events');
 
         const event = await Events.create({ title, description, location, starts_at, ends_at, metadata, published });
         if (event.published) await tellEveryone(event, req);
@@ -96,7 +83,7 @@ export const update = async (req, res, next) => {
         const { title, description, location, starts_at, ends_at } = req.body;
         const published = readPublished(req.body.published);
         const metadata = { ...old.metadata };
-        if (req.file) metadata.image_url = imageUrl(req);
+        if (req.file) metadata.image_url = fileUrl(req, 'events');
 
         const event = await Events.update(id, {
             title: title ?? old.title,
@@ -109,7 +96,7 @@ export const update = async (req, res, next) => {
         });
 
         // Only after the save worked, so a failed save never loses the old image
-        if (req.file) deleteImage(old.metadata?.image_url);
+        if (req.file) deleteFile(old.metadata?.image_url, 'events');
 
         // Only when a draft goes live, so normal edits stay quiet
         if (old.published === false && event.published) await tellEveryone(event, req);
@@ -128,6 +115,7 @@ export const remove = async (req, res, next) => {
         if (!event) return fail(res, 404, 'Event not found');
 
         await Events.remove(id);
+        deleteFile(event.metadata?.image_url, 'events');
 
         return res.status(200).json({
             status: 200,
