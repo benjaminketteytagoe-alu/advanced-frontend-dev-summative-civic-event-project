@@ -134,7 +134,7 @@
           CE.cache.invalidate('events');
           CE.cache.invalidate('notifs');
           var saved = r.data || {};
-          CE.flash.set('success', editing ? 'Event updated successfully.' : 'Event created — a notification was sent to everyone.');
+          CE.flash.set('success', editing ? 'Event updated successfully.' : saved.published === false ? 'Event saved as a draft. Only admins can see it.' : 'Event created. A notification was sent to everyone.');
           window.location.href = 'event.html?id=' + encodeURIComponent(saved.id || id);
         })
         .catch(function (err) {

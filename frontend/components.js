@@ -211,7 +211,7 @@
         }).catch(function (err) {
           render(registered ? 'registered' : 'none'); // revert
           if (!registered && err.status === 409) {
-            ui.toast('warning', 'You’ve registered for this event before (or cancelled it). The server doesn’t allow a second registration — please contact the organiser.');
+            ui.toast('warning', 'You’re already registered for this event. Refresh the page to see it.');
           } else CE.handleError(err, { retry: function () { actions.toggleRegistration($btn, onChange); } });
         }).finally(function () { $btn.prop('disabled', false); });
       };
