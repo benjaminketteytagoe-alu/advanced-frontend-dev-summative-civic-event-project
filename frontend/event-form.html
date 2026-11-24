@@ -25,7 +25,7 @@
       <h1 id="form-title" class="font-display text-4xl sm:text-5xl text-ink-900">Create an event</h1>
     </div>
 
-    <div class="mx-auto max-w-page px-4 sm:px-6 pt-4 grid lg:grid-cols-[1fr_22rem] gap-10 items-start">
+    <div class="mx-auto max-w-page px-4 sm:px-6 pt-4 grid grid-cols-1 lg:grid-cols-[1fr_22rem] gap-10 items-start">
       <form id="event-form" class="card p-6 sm:p-8 space-y-6" novalidate enctype="multipart/form-data" aria-busy="false">
         <div class="form-row">
           <label for="title" class="field-label">Title <span class="text-ember-600" aria-hidden="true">*</span></label>
@@ -90,7 +90,7 @@
 
       <aside class="lg:sticky lg:top-24" aria-label="Live preview">
         <p class="eyebrow mb-3">Live preview</p>
-        <div id="preview" class="pointer-events-none select-none" aria-hidden="true"></div>
+        <div id="preview" class="pointer-events-none select-none" aria-hidden="true" inert></div>
         <p class="mt-4 text-xs text-ink-500 leading-relaxed">This is how the event card will appear in the calendar. A generated DiceBear pattern is used when no image is uploaded.</p>
       </aside>
     </div>
