@@ -114,7 +114,7 @@ Sign out and back in to pick up the new role. Admins land on the dashboard (`adm
 | `admin-requests.html` | **admin** | every service request, with status and reply (`PATCH /service-requests/:id`) |
 | `profile.html` | users | edit name and email; role and status are read-only |
 | `search.html?q=` | users | global search across events, announcements and promos |
-| `admin.html` | **admin** | KPIs and four SVG charts (`/dashboard/admin`), auto-refreshes every 60 seconds |
+| `admin.html` | **admin** | key numbers and four charts drawn with plain boxes (`/dashboard/admin`), auto-refreshes every 60 seconds |
 | `admin-users.html` | **admin** | list users, view profile, enable/disable (no role editing) |
 | `admin-content.html` | **admin** | every event, announcement and promo, including unpublished ones; publish toggles |
 | `admin-notifications.html` | **admin** | delete form, per-row and bulk delete |

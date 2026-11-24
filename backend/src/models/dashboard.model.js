@@ -25,7 +25,7 @@ export const getAdminStats = async () => {
     stats.events = events.rows[0];
 
     // Registrations
-    const registrations = await db.query(`SELECT COUNT(*) AS total_registrations FROM event_registrations`);
+    const registrations = await db.query(`SELECT COUNT(*) AS total_registrations FROM event_registrations WHERE status = 'registered'`);
     stats.registrations = registrations.rows[0];
 
     // Feedback
