@@ -38,6 +38,7 @@ export const enable = async (req, res, next) => {
     try {
         const { id } = req.params;
         const user = await Users.enableUser(id);
+        if (!user) return res.status(404).json({ status: 404, message: 'User not found' });
         return res.status(200).json({
             status: 200,
             message: 'User enabled successfully',
@@ -52,7 +53,11 @@ export const enable = async (req, res, next) => {
 export const disable = async (req, res, next) => {
     try {
         const { id } = req.params;
+        // An admin who disabled themselves could not undo it
+        if (id === req.user.id) return res.status(400).json({ status: 400, message: 'You cannot disable your own account' });
+
         const user = await Users.disableUser(id);
+        if (!user) return res.status(404).json({ status: 404, message: 'User not found' });
         return res.status(200).json({
             status: 200,
             message: 'User disabled successfully',
