@@ -1,111 +1,187 @@
-/* =========================================================================
-   My profile
-     GET   /api/users/profile/me
-     PATCH /api/users/profile/me   { full_name?, email? }
-   role & is_active are NEVER sent (the API rejects them; UI shows them read-only).
-   A 409 on email change is surfaced with a clear confirmation dialog.
-   ========================================================================= */
+// Profile page: change your name and email. Role and status are only shown, never sent
 (function ($, CE) {
   'use strict';
   var ui = CE.ui, icon = CE.icon, esc = CE.esc, fmt = CE.fmt;
-  var me = null;
-  var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var me;   // the logged in person
 
-  function paint() {
-    $('#p-avatar').attr('src', CE.dice.avatar(me.id || me.email));
-    $('#banner').attr('src', CE.dice.cover('banner-' + me.id));
-    $('#p-name').text(me.full_name);
-    $('#p-meta').html('<span>' + esc(me.email) + '</span>' +
-      '<span class="badge ' + (me.role === 'admin' ? 'badge-ember' : 'badge-ink') + ' capitalize">' + icon(me.role === 'admin' ? 'shield' : 'user', 'w-3 h-3') + esc(me.role) + '</span>' +
-      '<span class="badge ' + (me.is_active !== false ? 'badge-moss' : 'badge-danger') + '">' + (me.is_active !== false ? 'Active' : 'Disabled') + '</span>');
-    $('#full_name').val(me.full_name); $('#email').val(me.email);
-    $('#role').val(me.role); $('#status').val(me.is_active !== false ? 'Active' : 'Disabled');
-    $('#s-since').text(me.created_at ? fmt.date(me.created_at, { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
-    ui.setTitle(me.full_name);
-    dirtyCheck();
-  }
+  function typedName() { return $.trim($('#full_name').val()); }
+  function typedEmail() { return $.trim($('#email').val()).toLowerCase(); }
 
-  function dirtyCheck() {
-    var changed = me && ($.trim($('#full_name').val()) !== me.full_name || $.trim($('#email').val()).toLowerCase() !== (me.email || '').toLowerCase());
-    $('#save-btn, #reset-btn').prop('disabled', !changed);
+  // Only what is different from before
+  function changes() {
+    var changed = {};
+    if (typedName() !== me.full_name) changed.full_name = typedName();
+    if (typedEmail() !== me.email.toLowerCase()) changed.email = typedEmail();
     return changed;
   }
 
-  function sessionInfo() {
+  // The buttons only work when something changed
+  function showButtons() {
+    var none = $.isEmptyObject(changes());
+    $('#save-btn, #reset-btn').prop('disabled', none);
+  }
+
+  function badges() {
+    var admin = me.role === 'admin', active = me.is_active !== false;
+    return '<span>' + esc(me.email) + '</span>' +
+      '<span class="badge ' + (admin ? 'badge-ember' : 'badge-ink') + ' capitalize">' +
+      icon(admin ? 'shield' : 'user', 'w-3 h-3') + esc(me.role) + '</span>' +
+      '<span class="badge ' + (active ? 'badge-moss' : 'badge-danger') + '">' + (active ? 'Active' : 'Disabled') + '</span>';
+  }
+
+  // The top of the page
+  function showHead() {
+    $('#p-avatar').attr('src', CE.dice.avatar(me.id));
+    $('#banner').attr('src', CE.dice.cover('banner-' + me.id));
+    $('#p-name').text(me.full_name);
+    $('#p-meta').html(badges());
+    ui.setTitle(me.full_name);
+  }
+
+  function fillForm() {
+    $('#full_name').val(me.full_name);
+    $('#email').val(me.email);
+    $('#role').val(me.role);
+    $('#status').val(me.is_active !== false ? 'Active' : 'Disabled');
+    showButtons();
+  }
+
+  function show() {
+    showHead();
+    fillForm();
+    var since = me.created_at ? fmt.date(me.created_at, { day: 'numeric', month: 'long', year: 'numeric' }) : '…';
+    $('#s-since').text(since);
+  }
+
+  // ---------- this session ----------
+
+  function showTimeLeft() {
+    var end = CE.auth.expiresAt();
+    if (!end) return $('#s-exp').text('Unknown');
+    var seconds = Math.max(0, Math.round((end - Date.now()) / 1000));
+    $('#s-exp').text(fmt.duration(seconds) + ' left');
+  }
+
+  function showSession() {
     $('#s-store').text(CE.auth.persistent() ? 'This device (localStorage)' : 'This tab only (sessionStorage)');
-    var tick = function () {
-      var e = CE.auth.expiresAt();
-      if (!e) { $('#s-exp').text('—'); return; }
-      var left = Math.max(0, Math.round((e - Date.now()) / 1000));
-      $('#s-exp').text(fmt.duration(left) + ' left');
-    };
-    tick(); setInterval(tick, 1000);
+    showTimeLeft();
+    setInterval(showTimeLeft, 1000); // every second
   }
 
-  function loadFeedback() {
-    var $l = $('#my-feedback').html('<li class="skeleton h-12"></li><li class="skeleton h-12"></li>');
-    CE.api.get('/event-feedback/my-feedback').then(function (r) {
-      var list = r.data || [];
-      $l.html(list.length ? list.slice(0, 6).map(function (f) {
-        return '<li><a href="event.html?id=' + encodeURIComponent(f.event_id) + '" class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-paper-100 transition">' +
-          '<span class="min-w-0"><span class="block font-medium text-ink-900 truncate">' + esc(f.title) + '</span><span class="text-xs text-ink-500">' + esc(fmt.date(f.starts_at)) + '</span></span>' + ui.stars(f.rating) + '</a></li>';
-      }).join('') : '<li class="text-ink-500">You haven’t rated any events yet.</li>');
-    }).catch(function () { $l.html('<li class="text-ink-500">Couldn’t load your feedback.</li>'); });
+  // ---------- my reviews ----------
+
+  function review(f) {
+    return '<li><a href="event.html?id=' + encodeURIComponent(f.event_id) + '" class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-paper-100 transition">' +
+      '<span class="min-w-0"><span class="block font-medium text-ink-900 truncate">' + esc(f.title) + '</span>' +
+      '<span class="text-xs text-ink-500">' + esc(fmt.date(f.starts_at)) + '</span></span>' + ui.stars(f.rating) + '</a></li>';
   }
 
-  function save(payload, $btn) {
-    ui.busy($btn, true, 'Saving…');
-    return CE.api.patch('/users/profile/me', payload).then(function (r) {
-      me = $.extend(me, r.data || payload);
-      CE.auth.updateUser({ full_name: me.full_name, email: me.email });
-      paint();
-      $('#app-header, header').first().find('#profile-btn img').attr('alt', 'Avatar for ' + me.full_name);
-      ui.toast('success', 'Your profile was updated.');
-    }).catch(function (err) {
-      if (err.status === 409) {
-        ui.fieldError($('#email'), 'This email is already used by another account.');
-        ui.modal({
-          title: 'That email is taken',
-          body: '<p class="text-sm leading-relaxed">Another CivicEvents+ account already uses <strong>' + esc(payload.email) + '</strong>. Your email has <strong>not</strong> been changed — you can still sign in with <strong>' + esc(me.email) + '</strong>.</p>',
-          footer: '<button class="btn btn-ghost" data-close id="keep-email">Keep current email</button><button class="btn btn-primary" data-close id="try-again" autofocus>Try another email</button>'
-        }).$el.on('click', '#keep-email', function () { $('#email').val(me.email); ui.fieldError($('#email'), ''); dirtyCheck(); })
-          .on('click', '#try-again', function () { setTimeout(function () { $('#email').trigger('select'); }, 320); });
-      } else if (err.status === 400) {
-        ui.applyServerErrors($('#profile-form'), err); CE.handleError(err);
-      } else CE.handleError(err, { retry: function () { save(payload, $btn); } });
-    }).finally(function () { ui.busy($btn, false); dirtyCheck(); });
+  function showReviews(list) {
+    var none = '<li class="text-ink-500">You haven’t rated any events yet.</li>';
+    $('#my-feedback').html(list.length ? list.slice(0, 6).map(review).join('') : none); // newest six
   }
 
-  CE.ready(function () {
-    var cached = CE.auth.user();
-    me = $.extend({}, cached);
-    paint(); sessionInfo(); loadFeedback();
-    CE.api.get('/users/profile/me').then(function (r) { me = r.data; paint(); }).catch(function (e) { CE.handleError(e); });
+  function loadReviews() {
+    var bar = '<li class="skeleton h-12"></li>';
+    $('#my-feedback').html(bar + bar);
+    CE.api.get('/event-feedback/my-feedback')
+      .then(function (reply) { showReviews(reply.data); })
+      .catch(function () { $('#my-feedback').html('<li class="text-ink-500">Couldn’t load your feedback.</li>'); });
+  }
 
-    $('#profile-form').on('input', dirtyCheck);
-    $('#profile-form').on('reset', function (e) { e.preventDefault(); ui.clearErrors($(this)); paint(); });
-    $('#signout').on('click', CE.auth.logout);
+  // ---------- saving ----------
 
-    $('#profile-form').on('submit', function (e) {
-      e.preventDefault();
-      var $f = $(this); ui.clearErrors($f);
-      var name = $.trim($('#full_name').val()), email = $.trim($('#email').val()).toLowerCase();
-      var ok = true;
-      if (name.length < 2) ok = ui.fieldError($('#full_name'), 'Name can’t be empty.') && ok;
-      if (!EMAIL.test(email)) ok = ui.fieldError($('#email'), 'Enter a valid email address.') && ok;
-      if (!ok) return;
+  function check() {
+    var ok = true;
+    ui.clearErrors($('#profile-form'));
+    if (typedName().length < 2) ok = ui.fieldError($('#full_name'), 'Enter at least 2 characters.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(typedEmail())) ok = ui.fieldError($('#email'), 'Enter a valid email address.');
+    if (!ok) $('#profile-form [aria-invalid=true]').first().trigger('focus');
+    return ok;
+  }
 
-      // Only send fields that changed — never role / is_active.
-      var payload = {};
-      if (name !== me.full_name) payload.full_name = name;
-      if (email !== (me.email || '').toLowerCase()) payload.email = email;
-      if (!Object.keys(payload).length) return;
-      var $btn = $('#save-btn');
+  function saved(reply) {
+    me = $.extend(me, reply.data);
+    CE.auth.updateUser({ full_name: me.full_name, email: me.email }); // for the header and the next page
+    show();
+    ui.toast('success', 'Your profile was updated.');
+  }
 
-      if (payload.email) {
-        ui.confirm({ title: 'Change your sign-in email?', message: 'From now on you’ll sign in with ' + email + ' instead of ' + me.email + '.', confirmText: 'Yes, change it' })
-          .then(function (yes) { if (yes) save(payload, $btn); });
-      } else save(payload, $btn);
+  function keepEmail() {
+    $('#email').val(me.email);
+    ui.fieldError($('#email'), '');
+    showButtons();
+  }
+
+  // Someone else has that email
+  function emailTaken(email) {
+    ui.fieldError($('#email'), 'This email is already used by another account.');
+    var win = ui.modal({
+      title: 'That email is taken',
+      body: '<p class="text-sm leading-relaxed">Another CivicEvents+ account already uses <strong>' + esc(email) + '</strong>. ' +
+        'Your email has <strong>not</strong> been changed, so you still sign in with <strong>' + esc(me.email) + '</strong>.</p>',
+      footer: '<button class="btn btn-ghost" data-close id="keep-email">Keep current email</button>' +
+        '<button class="btn btn-primary" data-close autofocus>Try another email</button>'
     });
+    win.$el.on('click', '#keep-email', keepEmail);
+  }
+
+  function failed(err, changed) {
+    if (err.status === 409) return emailTaken(changed.email);
+    if (err.status === 400) ui.applyServerErrors($('#profile-form'), err);
+    CE.handleError(err);
+  }
+
+  function save(changed) {
+    ui.busy($('#save-btn'), true, 'Saving…');
+    CE.api.patch('/users/profile/me', changed)
+      .then(saved)
+      .catch(function (err) { failed(err, changed); })
+      .finally(function () {
+        ui.busy($('#save-btn'), false);
+        showButtons();
+      });
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    var changed = changes();
+    if ($.isEmptyObject(changed) || !check()) return;
+    if (!changed.email) return save(changed);
+
+    ui.confirm({
+      title: 'Change your sign-in email?',
+      message: 'From now on you’ll sign in with ' + changed.email + ' instead of ' + me.email + '.',
+      confirmText: 'Yes, change it'
+    }).then(function (yes) { if (yes) save(changed); });
+  }
+
+  function discard(e) {
+    e.preventDefault();
+    ui.clearErrors($('#profile-form'));
+    fillForm();
+  }
+
+  // Get the latest, unless the person already started typing
+  function load() {
+    CE.api.get('/users/profile/me')
+      .then(function (reply) {
+        var typing = !$.isEmptyObject(changes());
+        me = reply.data;
+        if (typing) showHead();
+        else show();
+      })
+      .catch(CE.handleError);
+  }
+
+  // Start
+  CE.ready(function () {
+    me = $.extend({}, CE.auth.user()); // show what we know at once
+    show();
+    showSession();
+    load();
+    loadReviews();
+    $('#profile-form').on('input', showButtons).on('submit', submit).on('reset', discard);
+    $('#signout').on('click', CE.auth.logout);
   });
 })(jQuery, window.CE);
