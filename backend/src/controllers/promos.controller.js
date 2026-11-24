@@ -43,7 +43,7 @@ export const get = async (req, res, next) => {
  */
 export const create = async (req, res, next) => {
     try {
-        const { title, description, caption_text, video_link } = req.body;
+        const { title, description, caption_text, video_link, published } = req.body;
         const created_by = req.user.id;
 
         // A promo's video is either an uploaded file or a YouTube/Vimeo link
@@ -66,10 +66,11 @@ export const create = async (req, res, next) => {
             caption_text,
             video_url,
             created_by,
+            published, // left out means published
         });
 
-        // Create notification
-        await Notifications.create({
+        // Tell everyone, unless it is a draft
+        if (promo.published) await Notifications.create({
             title: 'New Promo Added!',
             message: `A new promo titled "${promo.title}" has been published.`,
             type: 'promo',
