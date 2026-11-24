@@ -388,9 +388,9 @@
     'event:create', 'event:edit', 'event:delete', 'event:viewRegistrants', 'event:viewAllFeedback',
     'announcement:create', 'announcement:edit', 'announcement:delete', 'announcement:publish',
     'promo:create', 'promo:edit', 'promo:delete', 'promo:publish',
-    'notification:delete', 'users:manage', 'dashboard:view', 'content:viewUnpublished'
+    'notification:delete', 'request:manage', 'users:manage', 'dashboard:view', 'content:viewUnpublished'
   ];
-  var USER_ACTIONS = ['event:register', 'event:feedback'];
+  var USER_ACTIONS = ['event:register', 'event:feedback', 'request:create'];
 
   var guard = {
     role: function () { var u = auth.isLoggedIn() && auth.user(); return u ? u.role : 'guest'; },
@@ -904,10 +904,11 @@
       var m = n.metadata || {};
       if (m.event_id) return { href: 'event.html?id=' + encodeURIComponent(m.event_id), label: 'Open event' };
       if (m.announcement_id) return { href: 'announcement.html?id=' + encodeURIComponent(m.announcement_id), label: 'Listen to announcement' };
+      if (m.service_request_id) return { href: 'requests.html', label: 'See your requests' };
       if (m.promo_id) return { href: 'promo.html?id=' + encodeURIComponent(m.promo_id), label: 'Watch promo' };
       return null;
     },
-    typeIcon: function (t) { return { event: 'calendar', announcement: 'megaphone', promo: 'film', system: 'info' }[t] || 'bell'; }
+    typeIcon: function (t) { return { event: 'calendar', announcement: 'megaphone', promo: 'film', service: 'message', system: 'info' }[t] || 'bell'; }
   };
 
   /* ----------------------------------------------------------------------
@@ -921,7 +922,7 @@
         { href: 'announcements.html', label: 'Announcements', match: /^announcement/ },
         { href: 'promos.html', label: 'Promos', match: /^promo/ }
       ];
-      if (guard.role() === 'user') links.push({ href: 'my-registrations.html', label: 'My events', match: /^my-registrations/ });
+      if (guard.role() === 'user') links.push({ href: 'my-registrations.html', label: 'My events', match: /^my-registrations/ }, { href: 'requests.html', label: 'Requests', match: /^requests/ });
       if (guard.can('dashboard:view')) links.push({ href: 'admin.html', label: 'Dashboard', match: /^admin/ });
       return links;
     },
@@ -949,7 +950,7 @@
         '<span class="badge ' + (u.role === 'admin' ? 'badge-ember' : 'badge-ink') + ' mt-2">' + icon(u.role === 'admin' ? 'shield' : 'user', 'w-3 h-3') + esc(u.role) + '</span></div>' +
         '<a role="menuitem" href="index.html">' + icon('home', 'w-4 h-4') + 'My dashboard</a>' +
         '<a role="menuitem" href="profile.html">' + icon('user', 'w-4 h-4') + 'My profile</a>' +
-        (guard.role() === 'user' ? '<a role="menuitem" href="my-registrations.html">' + icon('ticket', 'w-4 h-4') + 'My registrations</a>' : '') +
+        (guard.role() === 'user' ? '<a role="menuitem" href="my-registrations.html">' + icon('ticket', 'w-4 h-4') + 'My registrations</a><a role="menuitem" href="requests.html">' + icon('message', 'w-4 h-4') + 'My requests</a>' : '') +
         '<a role="menuitem" href="notifications.html">' + icon('inbox', 'w-4 h-4') + 'Notifications</a>' +
         // ADMIN-ONLY menu entries (guard.can('users:manage'))
         (guard.can('users:manage')
@@ -957,6 +958,7 @@
           '<a role="menuitem" href="admin.html">' + icon('chart', 'w-4 h-4') + 'Dashboard</a>' +
           '<a role="menuitem" href="admin-users.html">' + icon('users', 'w-4 h-4') + 'Manage users</a>' +
           '<a role="menuitem" href="admin-content.html">' + icon('grid', 'w-4 h-4') + 'Manage content</a>' +
+          '<a role="menuitem" href="admin-requests.html">' + icon('message', 'w-4 h-4') + 'Manage requests</a>' +
           '<a role="menuitem" href="admin-notifications.html">' + icon('bell', 'w-4 h-4') + 'Manage notifications</a>'
           : '') +
         '<div class="my-1 border-t border-paper-200"></div>' +
@@ -984,7 +986,7 @@
         '<span class="font-display text-xl font-semibold text-ink-900 tracking-tight">Civic<span class="text-ember-600">Events+</span></span></a>' +
         (u ? '<nav class="hidden lg:flex items-center gap-5" aria-label="Primary">' + nav + '</nav>' : '') +
         '<div class="flex-1"></div>' +
-        (u ? searchForm('global-search', 'hidden md:block w-56 xl:w-72') : '') +
+        (u ? searchForm('global-search', 'hidden md:block w-44 xl:w-72') : '') +
         '<div class="flex items-center gap-1 sm:gap-2">' + right +
         (u ? '<button type="button" id="mobile-menu-btn" class="icon-btn lg:hidden" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">' + icon('menu') + '</button>' : '') +
         '</div></div>' +

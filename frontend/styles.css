@@ -213,7 +213,7 @@ input[type="range"].range:hover::-webkit-slider-thumb { transform: scale(1.2); }
 .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 
 /* ---------- Navigation ---------- */
-.nav-link { position: relative; padding: .5rem .2rem; font-size: .9rem; font-weight: 500; color: var(--ink-2); transition: color .2s; }
+.nav-link { white-space: nowrap; position: relative; padding: .5rem .2rem; font-size: .9rem; font-weight: 500; color: var(--ink-2); transition: color .2s; }
 .nav-link::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: .1rem; height: 2px; border-radius: 2px; background: var(--ember);
   transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease-out);

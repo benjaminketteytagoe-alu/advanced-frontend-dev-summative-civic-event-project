@@ -363,6 +363,7 @@
       { k: 'overview', href: 'admin.html', label: 'Overview', ic: 'chart' },
       { k: 'users', href: 'admin-users.html', label: 'Users', ic: 'users' },
       { k: 'content', href: 'admin-content.html', label: 'Content', ic: 'grid' },
+      { k: 'requests', href: 'admin-requests.html', label: 'Requests', ic: 'message' },
       { k: 'notifications', href: 'admin-notifications.html', label: 'Notifications', ic: 'bell' }
     ];
     var create = [
