@@ -48,7 +48,12 @@ export const update = async (id, { title, description, location, starts_at, ends
     return rows[0];
 };
 
-// Delete an event
+// Delete an event and its registrations together, so either both go or neither does.
+// Its reviews go too, because the reviews table is set to ON DELETE CASCADE
 export const remove = async (id) => {
-    await db.query('DELETE FROM events WHERE id = $1', [id]);
+    await db.query(
+        `WITH gone AS (DELETE FROM event_registrations WHERE event_id = $1)
+         DELETE FROM events WHERE id = $1`,
+        [id]
+    );
 };
