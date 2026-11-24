@@ -183,9 +183,8 @@ The frontend checks only improve the experience. The backend's `authorize(['admi
 | No "mark notification as read" endpoint | Read state is stored per user in `localStorage`, updated optimistically |
 | No endpoint to create a broadcast notification | Broadcasts are sent automatically when admins publish events, announcements or promos; the admin panel manages and deletes them |
 | `GET /event-feedback/event/:id` is admin-only | Admins see the average and every review. Users see and edit their own review (one per event) |
-| Events ignore `published` on create/update, and there is no publish endpoint | The toggle is sent anyway; status is shown read-only in the admin content list |
-| Re-registering after a cancellation returns 409 | Shown as a clear message asking the user to contact the organiser |
 | Announcements don't store `duration_seconds` or transcripts | Duration is read from the audio file's metadata; the transcript section offers a request link |
 | Promo captions are plain `caption_text`, not a `.vtt` file | Converted into a WebVTT `<track>` in the browser (sentences timed across the video, or pasted WebVTT used as-is) |
 | *(Fixed in the backend.)* Login and tokens now reject disabled accounts | The UI shows the backend's message on the login page, and still signs out a disabled user on their next page load |
-| *(Fixed in the backend.)* Non-admins only get published announcements and promos | The admin content page still lists drafts, because admins get everything |
+| *(Fixed in the backend.)* Non-admins only get published events, announcements and promos | The admin content page lists drafts too, with a publish switch on every row. Events use `PUT /events/:id` |
+| *(Fixed in the backend.)* People can register again after cancelling | The Register button works again after a cancellation |

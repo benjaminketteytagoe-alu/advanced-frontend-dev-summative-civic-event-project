@@ -10,7 +10,7 @@ What it does:
   - events, with an image upload
   - audio announcements
   - video promos, as an uploaded file or a YouTube or Vimeo link
-  - Admins create, edit and publish all of these. Users only see published announcements and promos (events have no drafts yet).
+  - Admins create, edit and publish all of these. Users only see published items.
 - **Engagement:**
   - users register for events and cancel registrations
   - users leave one review per event
@@ -152,7 +152,7 @@ Every path starts with `/api`. 🔒 means a token is required, and 👑 means th
 
 ## 6. Rules worth knowing
 
-- **Drafts stay hidden.** For non-admins, announcement and promo lists contain only published items, and opening a draft by ID returns 404. Admins see everything.
+- **Drafts stay hidden.** For non-admins, event, announcement and promo lists contain only published items, and opening a draft by ID returns 404. Admins see everything.
 - **Disabled accounts:** login returns 403 with the message *"Your account has been disabled…"*. Any token issued before the account was disabled gets 401 on its next request.
 - **Promo videos:** you need either an upload or a link.
   - Links are checked by `src/utils/videoLink.js`. Only YouTube (`youtu.be`, `watch`, `shorts`, `embed`, `live`) and Vimeo are accepted, and they're saved in a standard form such as `https://www.youtube.com/watch?v=<id>`.

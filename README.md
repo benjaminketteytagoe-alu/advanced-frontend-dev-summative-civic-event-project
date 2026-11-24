@@ -23,7 +23,7 @@ CivicEvents+ is a web platform for local civic life. Residents browse community 
 
 | | User | Admin |
 |---|---|---|
-| Browse events and published announcements and promos | ✅ | ✅ (drafts too) |
+| Browse published events, announcements and promos | ✅ | ✅ (drafts too) |
 | Register for or cancel events, leave feedback | ✅ | ✅ |
 | Receive notifications, edit own profile | ✅ | ✅ |
 | Create, edit, publish and delete content, including YouTube/Vimeo promo links | ❌ | ✅ |
