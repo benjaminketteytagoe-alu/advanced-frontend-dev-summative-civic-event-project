@@ -31,12 +31,12 @@ export const findById = async (id) => {
     return res.rows[0] || null;
 };
 
-export const create = async ({ title, description, video_url, caption_text, created_by }) => {
+export const create = async ({ title, description, video_url, caption_text, created_by, published = true }) => {
     const res = await db.query(
-        `INSERT INTO promos (title, description, video_url, caption_text, created_by)
-     VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO promos (title, description, video_url, caption_text, created_by, published)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-        [title, description, video_url, caption_text, created_by]
+        [title, description, video_url, caption_text, created_by, published]
     );
     return res.rows[0];
 };

@@ -124,6 +124,7 @@
 
       var fd = new FormData();
       fd.append('title', title); fd.append('description', desc); fd.append('caption_text', cap);
+      if (!editing) fd.append('published', pub ? 'true' : 'false');
       if (sendFile) fd.append('video', file);
       if (sendLink) fd.append('video_link', link.watch);
 
@@ -134,7 +135,7 @@
       CE.api.upload(editing ? 'PUT' : 'POST', editing ? '/promos/' + encodeURIComponent(id) : '/promos', fd, function (p) { if (sendFile) CE.forms.progress($prog, p); })
         .then(function (r) {
           var saved = r.data || {}, pid = saved.id || id;
-          var wasPub = editing ? existing.published !== false : true; // new promos are published by the API
+          var wasPub = editing ? existing.published !== false : saved.published !== false;
           return (wasPub !== pub ? CE.actions.setPublished('promo', pid, pub) : Promise.resolve()).then(function () { return pid; });
         })
         .then(function (pid) {
