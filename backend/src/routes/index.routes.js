@@ -13,6 +13,7 @@ import eventFeedback from './eventFeedback.routes.js';
 import announcements from './announcements.routes.js';
 import promos from './promos.routes.js';
 import notifications from './notifications.routes.js';
+import serviceRequests from './serviceRequests.routes.js';
 import dashboard from './dashboard.routes.js';
 
 const router = express.Router();
@@ -32,6 +33,7 @@ router.use('/event-feedback', eventFeedback);
 router.use('/announcements', announcements);
 router.use('/promos', promos);
 router.use('/notifications', notifications);
+router.use('/service-requests', serviceRequests);
 router.use('/dashboard', dashboard);
 
 export default router;
