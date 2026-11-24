@@ -1,25 +1,13 @@
 import { validationResult } from 'express-validator';
 
-/**
- * Middleware to validate request body using express-validator
- */
+// Stop the request if any check in the routes file failed
 const validateBody = (req, res, next) => {
-    const errors = validationResult(req);
+    // Only the first problem per field, so a box never gets two messages
+    const problems = validationResult(req).array({ onlyFirstError: true });
+    if (problems.length === 0) return next();
 
-    if (!errors.isEmpty()) {
-        // Return first error or all errors
-        return res.status(400).json({
-            status: 400,
-            message: 'Validation failed',
-            errors: errors.array().map(err => ({
-                field: err.param,
-                message: err.msg,
-            })),
-        });
-    }
-
-    // Proceed if no errors
-    next();
+    const errors = problems.map((p) => ({ field: p.path, message: p.msg }));
+    return res.status(400).json({ status: 400, message: 'Validation failed', errors });
 };
 
 export default validateBody;
