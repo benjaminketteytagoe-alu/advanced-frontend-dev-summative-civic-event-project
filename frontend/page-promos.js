@@ -1,53 +1,122 @@
-/* =========================================================================
-   Promos list — GET /api/promos (cached 2 min, invalidated on admin changes)
-   Thumbnails are the first frame of each video, loaded lazily on scroll.
-   ========================================================================= */
+// Promos page: the list of videos, with search, filter and page numbers
 (function ($, CE) {
   'use strict';
-  var ui = CE.ui, PER_PAGE = 9;
-  var all = [], state = { q: '', status: 'all', page: 1 };
+  var ui = CE.ui;
 
-  function render() {
-    var q = state.q.toLowerCase();
-    var list = CE.data.visible(all).filter(function (p) {
-      if (q && ((p.title || '') + ' ' + (p.description || '')).toLowerCase().indexOf(q) < 0) return false;
-      if (state.status === 'published' && p.published === false) return false;
-      if (state.status === 'draft' && p.published !== false) return false;
-      return true;
+  var perPage = 9;
+  var promos = [];      // every promo from the server
+  var search = '';      // the text in the search box
+  var status = 'all';   // all, published or draft (the filter only admins see)
+  var page = 1;
+
+  function matchesSearch(p) {
+    var text = (p.title || '') + ' ' + (p.description || '');
+    return text.toLowerCase().indexOf(search.toLowerCase()) > -1;
+  }
+
+  function matchesStatus(p) {
+    if (status === 'all') return true;
+    var draft = p.published === false;
+    return status === 'draft' ? draft : !draft;
+  }
+
+  // The promos to show, after the search and the filter
+  function matches() {
+    return CE.data.visible(promos).filter(function (p) {
+      return matchesSearch(p) && matchesStatus(p);
     });
-    var pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
-    if (state.page > pages) state.page = pages;
-    var slice = list.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE);
-    var $g = $('#promo-grid').attr('aria-busy', 'false');
-    if (!slice.length) {
-      $g.html(ui.empty(all.length ? 'No matches' : 'No promos yet', all.length ? 'Try another search.' : 'Community videos will appear here once published.',
-        CE.guard.can('promo:create') && !all.length ? '<a href="promo-form.html" class="btn btn-primary">Upload the first promo</a>' : '', 'film'));
-    } else {
-      $g.html(slice.map(function (p) { return CE.views.promoCard(p, { q: state.q }); }).join(''));
-      CE.views.lazyVideos($g);
-      ui.stagger($g.find('.reveal'), 70); ui.reveal($g);
+  }
+
+  // The message when there is nothing to show
+  function showEmpty() {
+    if (promos.length) {
+      $('#promo-grid').html(ui.empty('No matches', 'Try another search.', '', 'film'));
+      return;
     }
-    ui.pagination($('#pager'), state.page, pages, function (p) { state.page = p; render(); $('html,body').animate({ scrollTop: 0 }, 300); });
+    var button = '';
+    if (CE.guard.can('promo:create')) button = '<a href="promo-form.html" class="btn btn-primary">Upload the first promo</a>';
+    $('#promo-grid').html(ui.empty('No promos yet', 'Community videos will appear here once published.', button, 'film'));
   }
 
-  function load(force) {
+  function showCards(list) {
+    var $grid = $('#promo-grid');
+    var cards = list.map(function (p) { return CE.views.promoCard(p, { q: search }); });
+    $grid.html(cards.join(''));
+    CE.views.lazyVideos($grid);           // load thumbnails only when they scroll into view
+    ui.stagger($grid.find('.reveal'), 70); // cards appear one after another
+    ui.reveal($grid);
+  }
+
+  function goToPage(n) {
+    page = n;
+    show();
+    $('html,body').animate({ scrollTop: 0 }, 300);
+  }
+
+  // Draw the page
+  function show() {
+    var list = matches();
+    var pages = Math.max(1, Math.ceil(list.length / perPage));
+    page = Math.min(page, pages); // deleting the last card can leave us past the end
+
+    var start = (page - 1) * perPage;
+    var part = list.slice(start, start + perPage);
+
+    if (part.length) showCards(part);
+    else showEmpty();
+
+    $('#promo-grid').attr('aria-busy', 'false');
+    ui.pagination($('#pager'), page, pages, goToPage);
+  }
+
+  // Get the promos. fresh = true skips the saved copy
+  function load(fresh) {
     $('#promo-grid').attr('aria-busy', 'true').html(ui.skeletonCards(6));
-    CE.data.promos(force).then(function (list) { all = list; render(); })
-      .catch(function (e) { ui.errorState($('#promo-grid'), e, function () { load(true); }); });
+    CE.data.promos(fresh)
+      .then(function (list) { promos = list; show(); })
+      .catch(function (err) {
+        ui.errorState($('#promo-grid'), err, refresh);
+        $('#promo-grid').attr('aria-busy', 'false');
+      });
   }
 
+  function refresh() { load(true); }
+
+  function changeSearch() {
+    search = $.trim(this.value);
+    page = 1;
+    show();
+  }
+
+  function changeStatus() {
+    status = $(this).data('status');
+    page = 1;
+    $('.chip[data-status]').attr('aria-pressed', 'false');
+    $(this).attr('aria-pressed', 'true');
+    show();
+  }
+
+  function removePromo() {
+    var $button = $(this), id = $button.attr('data-id');
+    CE.actions.remove({
+      action: 'promo:delete',
+      path: '/promos/' + id,
+      title: $button.attr('data-title'),
+      cacheKey: 'promos',
+      $card: $button.closest('.promo-card'),
+      after: function () {
+        promos = promos.filter(function (p) { return p.id !== id; });
+        show();
+      }
+    });
+  }
+
+  // Start
   CE.ready(function () {
     load();
-    $('#p-q').on('input', CE.debounce(function () { state.q = $.trim(this.value); state.page = 1; render(); }, 200));
-    $('#p-refresh').on('click', function () { load(true); });
-    $('.chip[data-status]').on('click', function () {
-      state.status = $(this).data('status'); state.page = 1;
-      $('.chip[data-status]').attr('aria-pressed', 'false'); $(this).attr('aria-pressed', 'true'); render();
-    });
-    $('#promo-grid').on('click', '.js-del-promo', function () {
-      var $b = $(this), id = $b.data('id');
-      CE.actions.remove({ action: 'promo:delete', path: '/promos/' + id, title: $b.data('title'), cacheKey: 'promos', $card: $b.closest('.promo-card'),
-        after: function () { all = all.filter(function (p) { return p.id !== id; }); render(); } });
-    });
+    $('#p-q').on('input', CE.debounce(changeSearch, 200)); // wait until typing stops
+    $('#p-refresh').on('click', refresh);
+    $('.chip[data-status]').on('click', changeStatus);
+    $('#promo-grid').on('click', '.js-del-promo', removePromo);
   });
 })(jQuery, window.CE);
