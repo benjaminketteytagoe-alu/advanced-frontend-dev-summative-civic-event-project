@@ -1,17 +1,11 @@
-/* =========================================================================
-   Admin dashboard (ADMIN ONLY) — GET /api/dashboard/admin
-   KPI tiles + four hand-built SVG charts (no chart library: HTML/Tailwind/
-   jQuery only). Charts re-render whenever data changes (manual refresh or
-   60-second auto-refresh). Every chart has hover tooltips, and all figures
-   are also available as a table for screen-reader / keyboard users.
-   ========================================================================= */
+
 (function ($, CE) {
   'use strict';
   var ui = CE.ui, icon = CE.icon, esc = CE.esc, num = CE.num;
   var timer = null, last = null;
   var NS = 'http://www.w3.org/2000/svg';
 
-  /* ---------- tooltip helper (one per figure) ---------- */
+  // tooltip helper (one per figure)
   function tip($host) {
     var $t = $host.find('.viz-tip');
     if (!$t.length) $t = $('<div class="viz-tip" role="status" aria-live="polite"></div>').appendTo($host);
@@ -25,7 +19,7 @@
   function vbar(x, y, w, h, r) { r = Math.min(r, w / 2, h); return 'M' + x + ',' + (y + h) + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'V' + (y + h) + 'Z'; }
   function hbar(x, y, w, h, r) { r = Math.min(r, h / 2, w); return 'M' + x + ',' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'V' + (y + h - r) + 'Q' + (x + w) + ',' + (y + h) + ' ' + (x + w - r) + ',' + (y + h) + 'H' + x + 'Z'; }
 
-  /* ---------- 1. column chart: monthly sign-ups (single series → no legend) ---------- */
+  // 1. column chart: monthly sign-ups (single series → no legend)
   function growthChart(rows) {
     var $h = $('#chart-growth');
     // fill the last 6 months, including empty ones
