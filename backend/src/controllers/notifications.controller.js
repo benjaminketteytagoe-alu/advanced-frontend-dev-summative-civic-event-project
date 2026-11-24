@@ -1,95 +1,46 @@
 import * as Notifications from '../models/notifications.model.js';
 
-/**
- * Create a new notification
- */
-export const create = async (req, res, next) => {
-    try {
-        const { title, message, type, recipient_id, metadata } = req.body;
+// Every failed reply has the same shape
+function fail(res, status, message) {
+    return res.status(status).json({ status, message });
+}
 
-        const notification = await Notifications.create({
-            title,
-            message,
-            type,
-            recipient_id: recipient_id || null,
-            metadata: metadata || {},
-            created_by: req.user?.id || null
-        });
+// No recipient means it is for everyone
+function isFor(note, user) {
+    return note.recipient_id === null || note.recipient_id === user.id;
+}
 
-        return res.status(201).json({
-            status: 201,
-            message: 'Notification created successfully',
-            data: notification
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
-/**
- * List notifications for the logged-in user
- */
+// The logged in person's notifications, theirs and the ones for everyone
 export const list = async (req, res, next) => {
     try {
-        const userId = req.user?.id || null;
-        const notifications = await Notifications.findAllForUser(userId);
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Notifications fetched successfully',
-            data: notifications
-        });
+        const data = await Notifications.findAllForUser(req.user.id);
+        return res.status(200).json({ status: 200, message: 'Notifications fetched successfully', data });
     } catch (err) {
         next(err);
     }
 };
 
-/**
- * Get a single notification by ID
- */
+// One notification. Someone else's private one does not exist as far as you know
 export const get = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const notification = await Notifications.findById(id);
+        const data = await Notifications.findById(req.params.id);
+        if (!data || !isFor(data, req.user)) return fail(res, 404, 'Notification not found');
 
-        if (!notification) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Notification not found'
-            });
-        }
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Notification fetched successfully',
-            data: notification
-        });
+        return res.status(200).json({ status: 200, message: 'Notification fetched successfully', data });
     } catch (err) {
         next(err);
     }
 };
 
-/**
- * Delete a notification
- */
+// Delete a notification (admins only, set in the routes file)
 export const remove = async (req, res, next) => {
     try {
         const { id } = req.params;
-
-        const existing = await Notifications.findById(id);
-        if (!existing) {
-            return res.status(404).json({
-                status: 404,
-                message: 'Notification not found'
-            });
-        }
+        const found = await Notifications.findById(id);
+        if (!found) return fail(res, 404, 'Notification not found');
 
         await Notifications.remove(id);
-
-        return res.status(200).json({
-            status: 200,
-            message: 'Notification deleted successfully'
-        });
+        return res.status(200).json({ status: 200, message: 'Notification deleted successfully' });
     } catch (err) {
         next(err);
     }
