@@ -104,7 +104,7 @@ Sign out and back in to pick up the new role. Admins land on the dashboard (`adm
 | `event.html?id=` | users | event detail, map, register/cancel, feedback; registrants list for admins |
 | `event-form.html[?id=]` | **admin** | create/edit with image upload (`image`), preview and progress bar |
 | `announcements.html`, `announcement.html?id=` | users | list with inline play; accessible custom audio player |
-| `announcement-form.html[?id=]` | **admin** | audio upload (`audio`), publish toggle |
+| `announcement-form.html[?id=]` | **admin** | audio upload (`audio`), replaceable when editing, publish toggle |
 | `promos.html`, `promo.html?id=` | users | lazy-loaded thumbnails; `<video>` with a captions `<track>` and interactive transcript, or the embedded YouTube/Vimeo player for linked promos |
 | `promo-form.html[?id=]` | **admin** | video upload (`video`) **or** a YouTube/Vimeo link (`video_link`), plus captions with a live preview |
 | `notifications.html` | users | inbox with detail view and links to related items; delete for admins |
