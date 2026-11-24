@@ -9,6 +9,9 @@ const ensureFolderExists = (folderPath) => {
     }
 };
 
+// An error the person can fix, so it gets 400
+const badFile = (message) => Object.assign(new Error(message), { status: 400 });
+
 // ---------- IMAGE UPLOAD (Events) ----------
 const imageStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -26,7 +29,7 @@ const imageFilter = (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.gif'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowed.includes(ext)) {
-        return cb(new Error('Only image files are allowed (jpg, jpeg, png, gif)'), false);
+        return cb(badFile('Only image files are allowed (jpg, jpeg, png, gif)'), false);
     }
     cb(null, true);
 };
@@ -55,7 +58,7 @@ const videoFilter = (req, file, cb) => {
     const allowed = ['.mp4', '.mov', '.avi', '.mkv'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowed.includes(ext)) {
-        return cb(new Error('Only video files are allowed (mp4, mov, avi, mkv)'), false);
+        return cb(badFile('Only video files are allowed (mp4, mov, avi, mkv)'), false);
     }
     cb(null, true);
 };
@@ -84,7 +87,7 @@ const audioFilter = (req, file, cb) => {
     const allowed = ['.mp3', '.wav', '.m4a', '.ogg'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowed.includes(ext)) {
-        return cb(new Error('Only audio files are allowed (mp3, wav, m4a, ogg)'), false);
+        return cb(badFile('Only audio files are allowed (mp3, wav, m4a, ogg)'), false);
     }
     cb(null, true);
 };
