@@ -21,12 +21,12 @@ export const createUser = async ({ full_name, email, password_hash, role = 'user
 
 
 /**
- * Find a user by email (including password_hash)
+ * Find a user by email, capitals do not matter (including password_hash)
  * @param {string} email
  * @returns {Object|null}
  */
 export const findByEmail = async (email) => {
-    const res = await db.query('SELECT * FROM users WHERE email=$1', [email]);
+    const res = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
     return res.rows[0] || null;
 };
 
