@@ -3,6 +3,10 @@
 An accessible, responsive frontend for the CivicEvents+ API, built with **HTML, Tailwind CSS and jQuery only** (no build step).
 It covers authentication, role-based access (admin vs user), events with registration and feedback, audio announcements, captioned video promos, in-app notifications, user profiles, and an admin dashboard with charts.
 
+**What this system does:** it is the part people see and use. Every page is a plain HTML file. Its matching `page-*.js` script calls the backend API (`../backend`) with the user's login token, then renders the response.
+- The frontend stores no data of its own. The only things it keeps in the browser are the login token, a short-lived list cache and the "read" state of notifications.
+- It decides what each role is *shown*. The backend decides what each role is *allowed* to do (see section 8).
+
 Artwork and avatars are generated with the [DiceBear](https://www.dicebear.com) HTTP API. All animation is CSS and jQuery and respects `prefers-reduced-motion`.
 Several effects are hand ported from [Pixel Perfect UI](https://github.com/vansh-nagar/Pixel-Perfect) by Vansh Nagar (MIT, <https://www.pixel-perfect.space>); see section 7.
 
@@ -24,8 +28,8 @@ Follow `../backend/README.md`. In short:
 ```bash
 cd backend
 # 1. create the database and tables
-psql -U <db-user> -h <db-host> -p <db-port> -c 'CREATE DATABASE "civic-events-db";'
-psql -U <db-user> -h <db-host> -p <db-port> -d civic-events-db -f ./migrations/001_create_tables.sql
+psql -U <db-user> -h <db-host> -p <db-port> -c 'CREATE DATABASE <db-name>;'
+psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/001_create_tables.sql
 # 2. set DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME and JWT_SECRET in backend/.env
 # 3. install and run
 npm install
@@ -39,8 +43,8 @@ Check it's up: <http://localhost:4000/health> should return `{"ok":true,...}`.
 | Symptom | Cause and fix |
 |---|---|
 | Sign-up or login says *“We couldn’t reach the CivicEvents+ server at http://localhost:4000/api”* | The backend isn't running. Start it with `npm run dev` in `backend/` and keep that terminal open. The footer's **API online / unreachable** dot shows the live status. |
-| Backend prints `password authentication failed for user "postgres"` | `DB_PASS` in `backend/.env` doesn't match your Postgres password. Set one with `sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'yourpass';"` and put the same value in `.env`. |
-| Backend prints `database "civic-events-db" does not exist` | Create it with `CREATE DATABASE "civic-events-db";`. The quotes are required because of the hyphens. |
+| Backend prints `password authentication failed for user "postgres"` | `DB_PASS` in `backend/.env` doesn't match your Postgres password. Reset the Postgres password and put the same value in `.env`. Never commit `.env`. |
+| Backend prints `database "…" does not exist` | Create the database named in `DB_NAME`. If the name has hyphens, put it in double quotes. |
 | Backend prints `relation "users" does not exist` | Run `migrations/001_create_tables.sql` against the database (see step 1 above). |
 | `Cannot find module 'express'` | Run `npm install` in `backend/`. |
 | `npm run db:setup` fails | It reads `$DB_PASSWORD` (not `DB_PASS`) from your shell, not from `.env`. Use the `psql` commands above instead. `db:seed` and `db:reset` need `002_seed_data.sql`, which isn't in the project. |
@@ -183,4 +187,5 @@ The frontend checks only improve the experience. The backend's `authorize(['admi
 | Re-registering after a cancellation returns 409 | Shown as a clear message asking the user to contact the organiser |
 | Announcements don't store `duration_seconds` or transcripts | Duration is read from the audio file's metadata; the transcript section offers a request link |
 | Promo captions are plain `caption_text`, not a `.vtt` file | Converted into a WebVTT `<track>` in the browser (sentences timed across the video, or pasted WebVTT used as-is) |
-| Login doesn't block disabled accounts | The UI checks `is_active` after login and on each page load, and signs disabled users out |
+| *(Fixed in the backend.)* Login and tokens now reject disabled accounts | The UI shows the backend's message on the login page, and still signs out a disabled user on their next page load |
+| *(Fixed in the backend.)* Non-admins only get published announcements and promos | The admin content page still lists drafts, because admins get everything |

@@ -1,84 +1,168 @@
-# CivicEvents+ API
+# CivicEvents+ API (backend)
 
-This repository contains the **backend API** for the CivicEvents+ Project  — a Node.js + Express application powered by PostgreSQL.  
-It provides endpoints for managing **events, promos, registrations, and notifications**, with full CRUD and authentication support.
+The backend is a **REST API built with Node.js, Express 5 and PostgreSQL**. It holds all of CivicEvents+'s data and rules. The frontend in `../frontend` never talks to the database. Everything goes through this API.
 
+What it does:
 
-## Features
-
-- User authentication and authorization (JWT-based)
-- Event registration and listing
-- Promo creation, publishing, and unpublishing
-- Notifications for promo publication
-- PostgreSQL for persistent data storage
-- Image, audio and video upload
-- RESTful API ready for frontend or Postman testing
-
-
-## Prerequisites
-
-Before setting up, make sure you have the following installed:
-
-| Tool | Description | Download Link |
-|------|--------------|----------------|
-| **Node.js (v18+)** | JavaScript runtime for the backend | [https://nodejs.org/](https://nodejs.org/) |
-| **PostgreSQL (v15+)** | Database engine | [https://www.postgresql.org/download/](https://www.postgresql.org/download/) |
-| **pgAdmin (optional)** | GUI client for PostgreSQL | [https://www.pgadmin.org/download/](https://www.pgadmin.org/download/) |
-| **Postman** | API testing tool | [https://www.postman.com/downloads/](https://www.postman.com/downloads/) |
+- **Accounts:** sign-up and login with bcrypt-hashed passwords and JWTs that last 1 hour. Every account has the role `user` or `admin`.
+- **Access control:** every route except sign-up and login needs a valid token. Admin-only routes are also wrapped in `authorize(['admin'])`. Accounts an admin has disabled can't log in, and their existing tokens stop working.
+- **Content:**
+  - events, with an image upload
+  - audio announcements
+  - video promos, as an uploaded file or a YouTube or Vimeo link
+  - Admins create, edit and publish all of these. Users only see published announcements and promos (events have no drafts yet).
+- **Engagement:**
+  - users register for events and cancel registrations
+  - users leave one review per event
+  - admins see each event's attendees and reviews
+- **Notifications:** publishing content sends an in-app notification to every user.
+- **Dashboards:** user and admin dashboards are built from aggregate queries.
+- **File uploads:** multer saves uploads to `uploads/`, and they're served at `/uploads/...`.
 
 ---
 
-## 1. PostgreSQL Installation & Database Setup
-- Download and install PostgreSQL from the official website: `https://www.postgresql.org/download/`
+## 1. Requirements
 
-- During installation, note the following:
+| Tool | Version |
+|------|---------|
+| Node.js | 18 or newer |
+| PostgreSQL | 15 or newer |
+| Postman (optional) | for trying the API by hand: import `CivicEvents+ API.postman_collection.json` |
 
-    - PostgreSQL username (default: postgres)
+## 2. Setup
 
-    - Password (you create this during installation)
-
-    - Port (default: 5432)
-
-- Create the Database
-    - After installing PostgreSQL, create the project database: `CREATE DATABASE civic-events-db;`. You can run this in the PostgreSQL terminal (psql) or in pgAdmin.
-
-## 2. Clone the Project
-- Open the terminal (Git Bash) in VSCode and complete the tasks below
-    - Clone the repository from GitHub classrooms: `git clone <repository-url>`
-
-    - Navigate to the backend directory: `cd backend`
-
-## 3. Postman Installation & Collection Setup
-- Install Postman: https://www.postman.com/downloads/
-
-- Create a new Postman collection
-    - Import the file `CivicEvents+ API.postman_collection.json` located in the backend directory into postman
-
-## 4. Populate Database With Tables
-- Open the terminal (Git Bash) in VSCode and complete the tasks below
-    - Paste the below variables in the terminal and run. Replace these with actual db credentials
-    ```
-    export DB_USER=<db-user>
-    export DB_PASSWORD=<db-password>
-    export DB_NAME=civic-events-db
-    export DB_HOST=<db_host>
-    export DB_PORT=<db_port>
-    ```
-
-- Run the command `psql -U $DB_USER -d $DB_NAME -h $DB_HOST -p $DB_PORT -f ./migrations/001_create_tables.sql` to create the necessary tables in your database
-
-- Configure the Environment Variables: Change the values in the `.env` file with the approapriate database credentials
-
-## 5. Install Node Dependencies
-- To install dependencies, run the command `npm install`
-
-## 6. Start the Server
-- To run the project in development mode, run the command `npm run dev`
-
-- The server will run at: `http://localhost:4000`
-
-- You should see a console output similar to the message below, which confirms that the server has started successfully and the database connection is working:
+```bash
+cd backend
+npm install
 ```
-CivicEvents+ backend is running on port 4000  
-Successfully connected to PostgreSQL
+
+**Create the database and tables.** The database name is up to you; use the same one in `.env`.
+
+```bash
+psql -U <db-user> -h <db-host> -p <db-port> -c 'CREATE DATABASE <db-name>;'
+psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/001_create_tables.sql
 ```
+
+The migration uses `IF NOT EXISTS`, so it's safe to run again.
+
+**Configure the environment.** Create `backend/.env`. The file is in `.gitignore` and **must never be committed**. Here are the names; fill in your own values:
+
+```ini
+# PostgreSQL
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=<db-name>
+DB_USER=<db-user>
+DB_PASS=<your-db-password>
+
+# Secret used to sign login tokens. Use a long random string, e.g.
+#   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+JWT_SECRET=<long-random-string>
+
+# Optional
+PORT=4000
+NODE_ENV=development
+# Optional e-mail (nodemailer). Leave unset if you don't send mail.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+```
+
+**Run it:**
+
+```bash
+npm run dev     # nodemon, restarts on changes
+npm start       # plain node
+```
+
+When it's running you'll see `CivicEvents+ backend listening on port 4000`. To check it, open <http://localhost:4000/health>, which returns `{"ok":true,...}`.
+
+> The `npm run db:*` scripts read `$DB_PASSWORD` from your **shell**, not `DB_PASS` from `.env`. Also, `002_seed_data.sql` isn't in the project. Use the `psql` commands above instead.
+
+**Make an admin.** Sign-up always creates a `user`. To make an admin, promote the account in the database, then log out and back in:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = '<their-email>';
+```
+
+---
+
+## 3. How a request flows
+
+```
+request ─► app.js (morgan logging, CORS, JSON/form parsing, /uploads static)
+        ─► src/routes/index.routes.js        mounts everything under /api
+        ─► src/routes/<area>.routes.js       per-area routes
+             ├─ authenticate                 checks the JWT, loads the user, rejects disabled accounts
+             ├─ authorize(['admin'])         admin-only routes
+             ├─ upload.single('image'|...)   multer, for routes with files
+             └─ validateBody                 express-validator rules
+        ─► src/controllers/<area>.controller.js   request/response logic
+        ─► src/models/<area>.model.js             parameterised SQL through pg
+        ─► PostgreSQL
+errors ─► src/middlewares/errorHandler.middleware.js   one JSON error format
+```
+
+| Folder | Role |
+|--------|------|
+| `server.js` | Loads `.env`, checks the database connection and starts listening |
+| `app.js` | Express app: middleware, `/api` routes, `/uploads`, `/health` |
+| `src/config/db.js` | The `pg` connection pool, configured from the `DB_*` variables |
+| `src/routes/` | Maps URLs to controllers and adds the auth, upload and validation middleware |
+| `src/controllers/` | Handles each endpoint and sends `{ status, message, data, pagination? }` |
+| `src/models/` | All SQL, always parameterised (`$1, $2…`), so input is never pasted into a query |
+| `src/middlewares/` | `auth` (JWT + roles), `upload` (multer limits and types), `validateBody`, `errorHandler` |
+| `src/services/` | `email.service.js` (nodemailer) and `storage.service.js` (file helpers) |
+| `src/utils/` | `paginator.js`, `serviceTypes.js`, and `videoLink.js` (checks YouTube and Vimeo links) |
+| `migrations/` | `001_create_tables.sql`: the schema |
+| `uploads/` | Uploaded files. Not git-ignored, so avoid committing test uploads |
+
+## 4. Database
+
+There are seven tables, all defined in `migrations/001_create_tables.sql`:
+
+| Table | Holds |
+|-------|-------|
+| `users` | `full_name`, email, password hash, `role` (`user`/`admin`), `is_active` |
+| `events` | title, description, location, start and end times, `metadata` (e.g. `image_url`), `published` |
+| `event_registrations` | which user is registered for which event, with a status |
+| `event_feedback` | one rating and comment per user per event |
+| `announcements` | title, `audio_url`, `published` |
+| `promos` | title, description, `video_url` (an uploaded file or a YouTube/Vimeo link), `caption_text`, `published` |
+| `notifications` | title, message, type, `recipient_id` (`NULL` sends it to everyone), `metadata` |
+
+## 5. Endpoints
+
+Every path starts with `/api`. 🔒 means a token is required, and 👑 means the route is admin-only.
+
+| Area | Endpoints |
+|------|-----------|
+| Auth | `POST /auth/signup`, `POST /auth/login` (returns 403 for disabled accounts) |
+| Users | 🔒 `GET`/`PATCH /users/profile/me` · 👑 `GET /users`, `GET /users/:id`, `PATCH /users/:id/enable`, `PATCH /users/:id/disable` |
+| Events | 🔒 `GET /events`, `GET /events/:id` · 👑 `POST /events`, `PUT /events/:id`, `DELETE /events/:id` (file field `image`) |
+| Registrations | 🔒 `POST /event-registrations/register`, `POST /event-registrations/cancel`, `GET /event-registrations/my-registrations` · 👑 `GET /event-registrations/event/:event_id/attendees` |
+| Feedback | 🔒 `POST /event-feedback`, `PUT /event-feedback/:id`, `GET /event-feedback/my-feedback` · 👑 `GET /event-feedback/event/:event_id` |
+| Announcements | 🔒 `GET /announcements`, `GET /announcements/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `audio`) |
+| Promos | 🔒 `GET /promos`, `GET /promos/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `video` **or** body field `video_link`) |
+| Notifications | 🔒 `GET /notifications`, `GET /notifications/:id` · 👑 `DELETE /notifications/:id` |
+| Dashboard | 🔒 `GET /dashboard/me` · 👑 `GET /dashboard/admin` |
+
+## 6. Rules worth knowing
+
+- **Drafts stay hidden.** For non-admins, announcement and promo lists contain only published items, and opening a draft by ID returns 404. Admins see everything.
+- **Disabled accounts:** login returns 403 with the message *"Your account has been disabled…"*. Any token issued before the account was disabled gets 401 on its next request.
+- **Promo videos:** you need either an upload or a link.
+  - Links are checked by `src/utils/videoLink.js`. Only YouTube (`youtu.be`, `watch`, `shorts`, `embed`, `live`) and Vimeo are accepted, and they're saved in a standard form such as `https://www.youtube.com/watch?v=<id>`.
+  - Any other link gets a 400 error on the `video_link` field. This means the frontend only ever embeds trusted players.
+- **Upload limits** (set in `upload.middleware.js`): images up to 2 MB, audio up to 5 MB, video up to 8 MB. Anything else is rejected.
+- **Errors** always come back as JSON: `{ status, message, errors? }`.
+
+## 7. Security notes
+
+- Keep `.env` out of git. If `JWT_SECRET` or the database password is ever shared, change both.
+- Passwords are stored only as bcrypt hashes, and the API never returns them.
+- All SQL is parameterised.
+- CORS is open, which is fine for local development. Restrict it to the frontend's origin before deploying.
