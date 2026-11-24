@@ -47,7 +47,7 @@ Check it's up: <http://localhost:4000/health> should return `{"ok":true,...}`.
 | Backend prints `database "…" does not exist` | Create the database named in `DB_NAME`. If the name has hyphens, put it in double quotes. |
 | Backend prints `relation "users" does not exist` | Run `migrations/001_create_tables.sql` against the database (see step 1 above). |
 | `Cannot find module 'express'` | Run `npm install` in `backend/`. |
-| `npm run db:setup` fails | It reads `$DB_PASSWORD` (not `DB_PASS`) from your shell, not from `.env`. Use the `psql` commands above instead. `db:seed` and `db:reset` need `002_seed_data.sql`, which isn't in the project. |
+| `npm run db:setup` fails | It reads `$DB_PASSWORD` (not `DB_PASS`) from your shell, not from `.env`. Use the `psql` commands above instead. |
 | The UI talks to the wrong port | You may have opened a page with `?api=...` once; it is remembered. Open `index.html?api=http://localhost:4000/api` to reset it. |
 
 ## 3. Run the frontend

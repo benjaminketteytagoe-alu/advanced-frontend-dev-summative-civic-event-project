@@ -45,6 +45,12 @@ psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/001_cre
 
 The migration uses `IF NOT EXISTS`, so it's safe to run again.
 
+**Add sample data (optional).** This adds sample events, an announcement, a promo, reviews and notifications. The sample people can't log in. Running it again adds nothing.
+
+```bash
+psql -U <db-user> -h <db-host> -p <db-port> -d <db-name> -f ./migrations/002_seed_data.sql
+```
+
 **Configure the environment.** Create `backend/.env`. The file is in `.gitignore` and **must never be committed**. Here are the names; fill in your own values:
 
 ```ini
@@ -80,7 +86,7 @@ npm start       # plain node
 
 When it's running you'll see `CivicEvents+ backend listening on port 4000`. To check it, open <http://localhost:4000/health>, which returns `{"ok":true,...}`.
 
-> The `npm run db:*` scripts read `$DB_PASSWORD` from your **shell**, not `DB_PASS` from `.env`. Also, `002_seed_data.sql` isn't in the project. Use the `psql` commands above instead.
+> The `npm run db:*` scripts read `$DB_PASSWORD` from your **shell**, not `DB_PASS` from `.env`. Use the `psql` commands above instead.
 
 **Make an admin.** Sign-up always creates a `user`. To make an admin, promote the account in the database, then log out and back in:
 
@@ -117,7 +123,7 @@ errors ─► src/middlewares/errorHandler.middleware.js   one JSON error format
 | `src/middlewares/` | `auth` (JWT + roles), `upload` (multer limits and types), `validateBody`, `errorHandler` |
 | `src/services/` | `email.service.js` (nodemailer) and `storage.service.js` (file helpers) |
 | `src/utils/` | `paginator.js`, `serviceTypes.js`, and `videoLink.js` (checks YouTube and Vimeo links) |
-| `migrations/` | `001_create_tables.sql`: the schema |
+| `migrations/` | `001_create_tables.sql`: the schema, `002_seed_data.sql`: sample data |
 | `uploads/` | Uploaded files. Not git-ignored, so avoid committing test uploads |
 
 ## 4. Database
