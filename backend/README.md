@@ -86,7 +86,7 @@ npm start       # plain node
 
 When it's running you'll see `CivicEvents+ backend listening on port 4000`. To check it, open <http://localhost:4000/health>, which returns `{"ok":true,...}`.
 
-> The `npm run db:*` scripts read `$DB_PASSWORD` from your **shell**, not `DB_PASS` from `.env`. Use the `psql` commands above instead.
+> Once `.env` is filled in, you can run `npm run db:setup` for the tables and `npm run db:seed` for the sample data. They use the settings in `.env`, so `psql` isn't needed. Create the database itself first.
 
 **Make an admin.** Sign-up always creates a `user`. To make an admin, promote the account in the database, then log out and back in:
 
@@ -124,7 +124,7 @@ errors ─► src/middlewares/errorHandler.middleware.js   one JSON error format
 | `src/services/` | `email.service.js` (nodemailer) and `storage.service.js` (file helpers) |
 | `src/utils/` | `paginator.js`, `serviceTypes.js`, and `videoLink.js` (checks YouTube and Vimeo links) |
 | `migrations/` | `001_create_tables.sql`: the schema, `002_seed_data.sql`: sample data |
-| `uploads/` | Uploaded files. Not git-ignored, so avoid committing test uploads |
+| `uploads/` | Uploaded files (git-ignored, created when needed) |
 
 ## 4. Database
 

@@ -59,7 +59,7 @@ Database credentials and the JWT signing secret live only in `backend/.env`, whi
 .
 ├── README.md          this file
 ├── .gitignore         ignores IDE settings (.idea/)
-├── backend/           Express API, migrations, uploads (has its own .gitignore for .env and node_modules)
+├── backend/           Express API, migrations, uploads (has its own .gitignore for .env, node_modules and uploads)
 ├── frontend/          static HTML pages, page scripts, styles
 └── video-demo/        demo video
 ```
