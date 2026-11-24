@@ -137,20 +137,20 @@ There are eight tables. The first seven are in `migrations/001_create_tables.sql
 
 ## 5. Endpoints
 
-Every path starts with `/api`. 🔒 means a token is required, and 👑 means the route is admin-only.
+Every path starts with `/api`. Every route except sign-up and login needs a token. Routes after "Admin only:" are for admins.
 
 | Area | Endpoints |
 |------|-----------|
 | Auth | `POST /auth/signup`, `POST /auth/login` (returns 403 for disabled accounts) |
-| Users | 🔒 `GET`/`PATCH /users/profile/me` · 👑 `GET /users`, `GET /users/:id`, `PATCH /users/:id/enable`, `PATCH /users/:id/disable` |
-| Events | 🔒 `GET /events`, `GET /events/:id` · 👑 `POST /events`, `PUT /events/:id`, `DELETE /events/:id` (file field `image`) |
-| Registrations | 🔒 `POST /event-registrations/register`, `POST /event-registrations/cancel`, `GET /event-registrations/my-registrations` · 👑 `GET /event-registrations/event/:event_id/attendees` |
-| Feedback | 🔒 `POST /event-feedback`, `PUT /event-feedback/:id`, `GET /event-feedback/my-feedback` · 👑 `GET /event-feedback/event/:event_id` |
-| Announcements | 🔒 `GET /announcements`, `GET /announcements/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `audio`) |
-| Promos | 🔒 `GET /promos`, `GET /promos/:id` · 👑 `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `video` **or** body field `video_link`) |
-| Notifications | 🔒 `GET /notifications`, `GET /notifications/:id` · 👑 `DELETE /notifications/:id` |
-| Service requests | 🔒 `GET /service-requests/types`, `GET /service-requests/mine`, `POST /service-requests` · 👑 `GET /service-requests`, `PATCH /service-requests/:id` (tells the sender) |
-| Dashboard | 🔒 `GET /dashboard/me` · 👑 `GET /dashboard/admin` |
+| Users | `GET`/`PATCH /users/profile/me` · Admin only: `GET /users`, `GET /users/:id`, `PATCH /users/:id/enable`, `PATCH /users/:id/disable` |
+| Events | `GET /events`, `GET /events/:id` · Admin only: `POST /events`, `PUT /events/:id`, `DELETE /events/:id` (file field `image`) |
+| Registrations | `POST /event-registrations/register`, `POST /event-registrations/cancel`, `GET /event-registrations/my-registrations` · Admin only: `GET /event-registrations/event/:event_id/attendees` |
+| Feedback | `POST /event-feedback`, `PUT /event-feedback/:id`, `GET /event-feedback/my-feedback` · Admin only: `GET /event-feedback/event/:event_id` |
+| Announcements | `GET /announcements`, `GET /announcements/:id` · Admin only: `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `audio`) |
+| Promos | `GET /promos`, `GET /promos/:id` · Admin only: `POST`, `PUT /:id`, `PATCH /:id/publish`, `PATCH /:id/unpublish`, `DELETE /:id` (file field `video` **or** body field `video_link`) |
+| Notifications | `GET /notifications`, `GET /notifications/:id` · Admin only: `DELETE /notifications/:id` |
+| Service requests | `GET /service-requests/types`, `GET /service-requests/mine`, `POST /service-requests` · Admin only: `GET /service-requests`, `PATCH /service-requests/:id` (tells the sender) |
+| Dashboard | `GET /dashboard/me` · Admin only: `GET /dashboard/admin` |
 
 ## 6. Rules worth knowing
 

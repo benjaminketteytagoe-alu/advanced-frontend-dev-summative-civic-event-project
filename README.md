@@ -23,12 +23,12 @@ CivicEvents+ is a web platform for local civic life. Residents browse community 
 
 | | User | Admin |
 |---|---|---|
-| Browse published events, announcements and promos | ✅ | ✅ (drafts too) |
-| Register for or cancel events, leave feedback | ✅ | ✅ |
-| Receive notifications, edit own profile | ✅ | ✅ |
-| Send service requests and follow their status | ✅ | ✅ (sees and answers all) |
-| Create, edit, publish and delete content, including YouTube/Vimeo promo links | ❌ | ✅ |
-| See attendees and all feedback, enable or disable users, dashboard stats | ❌ | ✅ |
+| Browse published events, announcements and promos | Yes | Yes (drafts too) |
+| Register for or cancel events, leave feedback | Yes | Yes |
+| Receive notifications, edit own profile | Yes | Yes |
+| Send service requests and follow their status | Yes | Yes (sees and answers all) |
+| Create, edit, publish and delete content, including YouTube/Vimeo promo links | No | Yes |
+| See attendees and all feedback, enable or disable users, dashboard stats | No | Yes |
 
 The frontend hides what a role can't use. The **backend enforces it**: admin routes return 403 to users, and disabled accounts can't log in.
 
