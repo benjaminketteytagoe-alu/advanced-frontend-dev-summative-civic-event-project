@@ -1,9 +1,7 @@
 import * as AnnouncementModel from '../models/announcements.model.js';
 import * as NotificationModel from '../models/notifications.model.js';
 
-/**
- * Get all announcements
- */
+// Get all announcements
 export const getAllAnnouncements = async (req, res, next) => {
     try {
         const announcements = await AnnouncementModel.findAll(req.query, { publishedOnly: req.user.role !== 'admin' });
@@ -17,9 +15,7 @@ export const getAllAnnouncements = async (req, res, next) => {
     }
 };
 
-/**
- * Get a single announcement
- */
+// Get a single announcement
 export const getAnnouncementById = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -39,9 +35,7 @@ export const getAnnouncementById = async (req, res, next) => {
     }
 };
 
-/**
- * Create a new announcement (with audio file upload)
- */
+// Create a new announcement (with audio file upload)
 export const createAnnouncement = async (req, res, next) => {
     try {
         const { title, published = true } = req.body;
@@ -85,9 +79,7 @@ export const createAnnouncement = async (req, res, next) => {
     }
 };
 
-/**
- * Update an announcement
- */
+// Update an announcement
 export const updateAnnouncement = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -113,9 +105,7 @@ export const updateAnnouncement = async (req, res, next) => {
     }
 };
 
-/**
- * Delete an announcement
- */
+// Delete an announcement
 export const deleteAnnouncement = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -140,9 +130,7 @@ export const deleteAnnouncement = async (req, res, next) => {
     }
 };
 
-/**
- * Publish an announcement
- */
+// Publish an announcement
 export const publishAnnouncement = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -178,9 +166,7 @@ export const publishAnnouncement = async (req, res, next) => {
     }
 };
 
-/**
- * Unpublish an announcement
- */
+// Unpublish an announcement
 export const unpublishAnnouncement = async (req, res, next) => {
     try {
         const { id } = req.params;
