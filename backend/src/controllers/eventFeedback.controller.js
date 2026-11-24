@@ -1,60 +1,74 @@
 import * as Feedback from '../models/eventFeedback.model.js';
 import * as Events from '../models/events.model.js';
 
+// Every failed reply has the same shape
+function fail(res, status, message) {
+    return res.status(status).json({ status, message });
+}
+
+// A rating is a whole number from 1 to 5
+function goodRating(rating) {
+    const n = Number(rating);
+    return Number.isInteger(n) && n >= 1 && n <= 5;
+}
+
+// Leave a review
 export const createFeedback = async (req, res, next) => {
     try {
-        const user_id = req.user.id;
         const { event_id, rating, comment } = req.body;
+        if (!goodRating(rating)) return fail(res, 400, 'Rating must be a whole number from 1 to 5');
 
-        // Check event exists
+        // Nobody can review a draft
         const event = await Events.findById(event_id);
-        if (!event) return res.status(404).json({ status: 404, message: 'Event not found' });
+        if (!event || event.published === false) return fail(res, 404, 'Event not found');
 
-        // Create feedback
-        const feedback = await Feedback.createFeedback({ user_id, event_id, rating, comment });
-        res.status(201).json({ status: 201, message: 'Feedback submitted', data: feedback });
+        // A second review for the same event gets 409 from the shared error code
+        const data = await Feedback.createFeedback({ user_id: req.user.id, event_id, rating, comment });
+        return res.status(201).json({ status: 201, message: 'Feedback submitted', data });
     } catch (err) {
         next(err);
     }
 };
 
+// Change your own review
 export const updateFeedback = async (req, res, next) => {
     try {
-        const user_id = req.user.id;
         const { id } = req.params;
         const { rating, comment } = req.body;
+        if (!goodRating(rating)) return fail(res, 400, 'Rating must be a whole number from 1 to 5');
 
-        // Optional: validate that feedback belongs to user
-        const userFeedback = await Feedback.findByUser(user_id);
-        const feedback = userFeedback.find(f => f.id === id);
-        if (!feedback) return res.status(403).json({ status: 403, message: 'Cannot update this feedback' });
+        // Look for this review among the person's own ones
+        const mine = await Feedback.findByUser(req.user.id);
+        const found = mine.find((review) => review.id === id);
+        if (!found) return fail(res, 403, 'Cannot update this feedback');
 
-        const updated = await Feedback.updateFeedback(id, { rating, comment });
-        res.status(200).json({ status: 200, message: 'Feedback updated', data: updated });
+        const data = await Feedback.updateFeedback(id, { rating, comment });
+        return res.status(200).json({ status: 200, message: 'Feedback updated', data });
     } catch (err) {
         next(err);
     }
 };
 
+// Every review of an event (admins only, set in the routes file)
 export const getEventFeedback = async (req, res, next) => {
     try {
         const { event_id } = req.params;
-        
-        const event = await Events.findById(event_id);
-        if (!event) return res.status(404).json({ status: 404, message: 'Event not found' });
 
-        const feedbacks = await Feedback.findByEvent(event_id);
-        res.status(200).json({ status: 200, data: feedbacks });
+        const event = await Events.findById(event_id);
+        if (!event) return fail(res, 404, 'Event not found');
+
+        const data = await Feedback.findByEvent(event_id);
+        return res.status(200).json({ status: 200, message: 'Event feedback retrieved successfully', data });
     } catch (err) {
         next(err);
     }
 };
 
+// The logged in person's own reviews
 export const getUserFeedback = async (req, res, next) => {
     try {
-        const user_id = req.user.id;
-        const feedbacks = await Feedback.findByUser(user_id);
-        res.status(200).json({ status: 200, data: feedbacks });
+        const data = await Feedback.findByUser(req.user.id);
+        return res.status(200).json({ status: 200, message: 'Your feedback retrieved successfully', data });
     } catch (err) {
         next(err);
     }
