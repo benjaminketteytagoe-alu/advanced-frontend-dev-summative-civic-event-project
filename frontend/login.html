@@ -13,7 +13,7 @@
   <script src="tw-config.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<!-- PAGE GUARD: data-auth="guest" → signed-in users are redirected away (see CE.guard.page in app.js) -->
+<!-- PAGE GUARD: data-auth="guest" → signed-in users are redirected away (see checkPage in app.js) -->
 <body data-auth="guest" data-page="login" class="min-h-screen font-sans">
   <main id="main" tabindex="-1" class="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
 
@@ -83,6 +83,8 @@
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
+  <script src="ui.js"></script>
+  <script src="layout.js"></script>
   <script src="fx.js"></script>
   <script src="page-auth.js"></script>
 </body>

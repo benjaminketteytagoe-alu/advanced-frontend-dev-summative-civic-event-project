@@ -257,9 +257,10 @@ input[type="range"].range:hover::-webkit-slider-thumb { transform: scale(1.2); }
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(28rem, 100%); z-index: 80; background: var(--paper);
   box-shadow: -30px 0 60px -30px rgba(11, 17, 32, .5); transform: translateX(105%);
-  transition: transform .45s var(--ease-out); display: flex; flex-direction: column;
+  transition: transform .45s var(--ease-out), visibility .45s; display: flex; flex-direction: column;
+  visibility: hidden; /* so the keyboard and the shadow stay away while it is closed */
 }
-.drawer.is-open { transform: none; }
+.drawer.is-open { transform: none; visibility: visible; transition: transform .45s var(--ease-out); }
 .modal-wrap { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1rem; pointer-events: none; }
 .modal {
   width: min(32rem, 100%); max-height: calc(100vh - 2rem); overflow: auto; background: var(--paper-50, #fdfcf9);

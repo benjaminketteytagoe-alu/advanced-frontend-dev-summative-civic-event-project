@@ -73,13 +73,13 @@ Then visit **<http://localhost:5500/index.html>**.
 
 ## 4. Connecting to the backend (API base URL)
 
-The default API base URL is **`http://localhost:4000/api`**, defined in `app.js` (`DEFAULT_API`). There is no build step, so there is no `.env` file for the frontend. Instead, you can change the URL in any of these ways:
+The default API base URL is **`http://localhost:4000/api`**, set in `findApi` in `app.js`. There is no build step, so there is no `.env` file for the frontend. Instead, you can change the URL in any of these ways:
 
 | Method | Example |
 |--------|---------|
-| Query string (remembered in localStorage) | `http://localhost:5500/index.html?api=http://192.168.1.20:4000/api` |
+| Query string (remembered in localStorage) | `http://localhost:5500/index.html?api=http://localhost:4001/api`. Only `localhost`, `127.0.0.1` or the site's own host is accepted, so a bad link can't send passwords to another server |
 | Global variable before `app.js` | `<script>window.CIVIC_API_BASE = 'https://api.example.com/api'</script>` |
-| Edit the constant | `var DEFAULT_API = '…'` in `app.js` |
+| Edit the address | in `findApi` in `app.js` |
 
 The footer of every page shows a live **API online / unreachable** indicator, based on `GET /health`.
 
@@ -125,7 +125,9 @@ Sign out and back in to pick up the new role. Admins land on the dashboard (`adm
 |------|---------|
 | `tw-config.js` | Tailwind theme (colours, fonts, shadows) |
 | `styles.css` | Component classes, motion system, skeletons, focus styles, reduced-motion fallbacks |
-| `app.js` | Core `CE` namespace: config, **auth context**, API client, error handling, **role guards**, cache, notifications, layout, UI kit |
+| `app.js` | The base: settings, login, requests to the API, **role guards**, saved lists, notifications. Shared through the `CE` object |
+| `ui.js` | Icons, artwork, toasts, windows, loading and error states, page numbers, form errors |
+| `layout.js` | Header, footer, notification panel, and the code that starts every page |
 | `components.js` | Shared cards, actions (register, delete, publish), form kit, caption builder, admin sidebar |
 | `fx.js` | Motion effects (`CE.fx`): odometer numbers, success ripple, card tilt with glare |
 | `page-*.js` | One script per page |
@@ -153,11 +155,11 @@ Admins choose **Upload a file** (MP4, MOV, AVI or MKV up to 8 MB) or **Paste a Y
 
 ## 8. Where the role-based access guards are
 
-Search the code for `ROLE`, `GUARD` and `ADMIN-ONLY`. There are three layers, all documented in comments in `app.js`, section 5:
+There are three layers, in `app.js` under "who may do what":
 
-1. **Page guard.** Each page sets `<body data-auth="public | guest | user | admin">`, and `CE.guard.page()` checks it before any page code runs. Signed-out visitors are sent to login. Normal users who open an admin page see a 403 panel, and that page's script never initialises, so no admin API calls are made.
-2. **Element guard.** Markup marked `data-role="admin"`, `"user"`, `"guest"` or `"auth"` is **removed from the DOM** by `CE.guard.apply()` when the role doesn't match.
-3. **Action guard.** `CE.guard.can('event:edit')` and similar checks are used wherever admin or user-only buttons are generated (`components.js`, `page-event.js`, …) and again inside each handler before a request is sent.
+1. **Page guard.** Each page sets `<body data-auth="public | guest | user | admin">`, and `checkPage` runs before any page code. Signed-out visitors are sent to login. Users who open an admin page see a 403 panel, and that page's script never runs.
+2. **Element guard.** Markup with `data-role="admin"`, `"user"`, `"guest"` or `"auth"` is **removed from the page** by `applyRoles` when the role doesn't match.
+3. **Action guard.** `CE.guard.can('event:edit')` and similar checks decide which buttons are drawn, and run again before a request is sent.
 
 The frontend checks only improve the experience. The backend's `authorize(['admin'])` middleware is the real security boundary. If a request is forbidden anyway, the API returns 403 and the UI shows an **Access restricted** dialog with a **Contact admin** option.
 
