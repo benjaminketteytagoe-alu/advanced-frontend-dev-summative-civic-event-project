@@ -1,6 +1,7 @@
 import * as Promos from '../models/promos.model.js';
 import * as Notifications from '../models/notifications.model.js';
 import * as PromoModel from '../models/promos.model.js';
+import { fileUrl, deleteFile } from '../utils/files.js';
 import { normalizeVideoLink, VIDEO_LINK_ERROR } from '../utils/videoLink.js';
 
 /**
@@ -48,7 +49,7 @@ export const create = async (req, res, next) => {
         // A promo's video is either an uploaded file or a YouTube/Vimeo link
         let video_url;
         if (req.file) {
-            video_url = `${req.protocol}://${req.get('host')}/uploads/promos/${req.file.filename}`;
+            video_url = fileUrl(req, 'promos');
         } else if (video_link) {
             const link = normalizeVideoLink(video_link);
             if (!link) {
@@ -108,7 +109,7 @@ export const update = async (req, res, next) => {
 
         // Optional: replace the video with a new upload or a YouTube/Vimeo link
         if (req.file) {
-            fieldsToUpdate.video_url = `${req.protocol}://${req.get('host')}/uploads/promos/${req.file.filename}`;
+            fieldsToUpdate.video_url = fileUrl(req, 'promos');
         } else if (req.body.video_link) {
             const link = normalizeVideoLink(req.body.video_link);
             if (!link) {
@@ -118,6 +119,9 @@ export const update = async (req, res, next) => {
         }
 
         const updated = await Promos.update(id, fieldsToUpdate);
+
+        // The old video goes only after the new one is saved
+        if (updated.video_url !== existingPromo.video_url) deleteFile(existingPromo.video_url, 'promos');
 
         return res.status(200).json({
             status: 200,
@@ -140,6 +144,7 @@ export const remove = async (req, res, next) => {
         }
 
         await Promos.remove(req.params.id);
+        deleteFile(promo.video_url, 'promos');
 
         return res.status(200).json({
             status: 200,

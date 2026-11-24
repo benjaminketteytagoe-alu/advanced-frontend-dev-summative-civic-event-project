@@ -3,6 +3,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import path from 'path';
 import routes from './src/routes/index.routes.js';
+import { dropRefusedFile } from './src/utils/files.js';
 import errorHandler from './src/middlewares/errorHandler.middleware.js';
 
 
@@ -16,7 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 // static uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-app.use('/api', routes);
+app.use('/api', dropRefusedFile, routes);
 app.get('/health', (req, res) => res.json({ ok: true, env: process.env.NODE_ENV || 'development' }));
 app.use(errorHandler);
 
