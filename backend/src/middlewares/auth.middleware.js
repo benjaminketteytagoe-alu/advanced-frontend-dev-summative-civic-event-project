@@ -1,38 +1,51 @@
 import jwt from 'jsonwebtoken';
 import * as Users from '../models/users.model.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+// The same secret that signed the token (auth.controller.js stops the server if it is missing)
+const SECRET = process.env.JWT_SECRET;
 
+// Every failed reply has the same shape
+function fail(res, status, message) {
+    return res.status(status).json({ status, message });
+}
+
+// Give back what is inside the token, or null if it is fake or expired
+function readToken(token) {
+    try {
+        return jwt.verify(token, SECRET);
+    } catch {
+        return null;
+    }
+}
+
+// Is this person logged in?
 export const authenticate = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ status: 401, message: 'Authorization header missing' });
-        }
+        const header = req.headers.authorization;
+        if (!header || !header.startsWith('Bearer ')) return fail(res, 401, 'Authorization header missing');
 
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const data = readToken(header.split(' ')[1]);
+        if (!data) return fail(res, 401, 'Invalid or expired token');
 
-        const user = await Users.findById(decoded.id);
-        if (!user) return res.status(401).json({ status: 401, message: 'User not found' });
-        // Disabled accounts lose access immediately, even with a token that hasn't expired yet
+        // Looked up every time, so a changed role or a disabled account counts straight away
+        const user = await Users.findById(data.id);
+        if (!user) return fail(res, 401, 'User not found');
+
         if (user.is_active === false) {
-            return res.status(401).json({ status: 401, message: 'Your account has been disabled. Please contact an administrator.' });
+            return fail(res, 401, 'Your account has been disabled. Please contact an administrator.');
         }
 
         req.user = user;
         next();
     } catch (err) {
-        return res.status(401).json({ status: 401, message: 'Invalid or expired token' });
+        next(err);
     }
 };
 
-// Role-based access control
+// Is this person's role allowed here?
 export const authorize = (roles = []) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ status: 403, message: 'Forbidden: insufficient permissions' });
-        }
+        if (!roles.includes(req.user.role)) return fail(res, 403, 'Forbidden: insufficient permissions');
         next();
     };
 };
