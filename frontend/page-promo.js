@@ -57,6 +57,7 @@
       '</aside></div>';
 
     $('#promo-root').attr('aria-busy', 'false').html(html);
+    $('#temp-title').remove(); // the real title is on the page now
     ui.reveal($('#promo-root'));
     bind();
   }

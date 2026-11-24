@@ -91,6 +91,7 @@
       '</aside></div>';
 
     $('#event-root').attr('aria-busy', 'false').html(html);
+    $('#temp-title').remove(); // the real title is on the page now
     $('#ics').attr('href', icsFile(ev));
     ui.reveal($('#event-root'));
     loadFeedback();

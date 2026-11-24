@@ -75,6 +75,7 @@
       '</div></details></section>';
 
     $('#ann-root').attr('aria-busy', 'false').html(html);
+    $('#temp-title').remove(); // the real title is on the page now
     ui.reveal($('#ann-root'));
     bindPlayer();
   }
